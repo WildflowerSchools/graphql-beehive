@@ -11,14 +11,7 @@ process.env.check_db_schema = "true"
 exports.BeehiveTypeDefs = `
     directive @beehive (schema_name: String) on SCHEMA
 
-    directive @beehiveTable (table_name: String) on OBJECT
-
-    directive @beehiveIndex(
-            with_columns: [String!],
-            unique: Boolean = false,
-            primary: Boolean = false,
-            nullable: Boolean = true,
-        ) on FIELD_DEFINITION
+    directive @beehiveTable (table_name: String, pk_column: String) on OBJECT
 
     directive @beehiveCreate(target_type_name: String!) on FIELD_DEFINITION
 
@@ -39,7 +32,7 @@ exports.BeehiveTypeDefs = `
         cursor: String
     }
 
-    type pageInfo {
+    type PageInfo {
         total: Int
         count: Int
         max: Int
@@ -63,8 +56,11 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
         var table_config = {
             type: type,
             table_name: type.name,
-            indexes: [],
             pk_column: findIdField(type),
+        }
+
+        if(this.args.pk_column) {
+            table_config["pk_column"] = this.args.pk_column
         }
 
         if(this.args.table_name) {
@@ -78,17 +74,9 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
         schema._beehive = {
             schema_name: this.args.schema_name ? this.args.schema_name : "beehive",
             tables: [],
-            indexes: [],
         }
     }
 
-    visitFieldDefinition(field, details) {
-        var table_config = this.schema._beehive.tables[details.objectType.name]
-        if(!table_config) {
-            throw Error("Table not defined, type should have a @beehiveTable directive.")
-        }
-        table_config.indexes.push(this.args)
-    }
 }
 
 
@@ -252,8 +240,6 @@ exports.BeehiveMutationDirective = BeehiveMutationDirective
 exports.BeehiveDirectives = {
     beehive: BeehiveDirective,
     beehiveTable: BeehiveDirective,
-    beehiveIndex: BeehiveDirective,
-    beehiveInput: BeehiveDirective,
     beehiveCreate: BeehiveMutationDirective,
     beehiveList: BeehiveListDirective,
     beehiveQuery: BeehiveQueryDirective,

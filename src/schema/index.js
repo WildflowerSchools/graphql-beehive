@@ -8,7 +8,7 @@ const {BeehiveDirectives, BeehiveTypeDefs} = require("../queen")
 
 const rootDefs = `
     type Thing @beehiveTable(table_name: "things") {
-        thing_id: ID! @beehiveIndex(primary: true)
+        thing_id: ID!
         name: String
         related: [RelatedThing!] @beehiveRelation(target_type_name: "RelatedThing", target_field_name: "thing")
         dimensions: [Float!]
@@ -20,7 +20,7 @@ const rootDefs = `
     }
 
     type RelatedThing @beehiveTable(table_name: "rel_things") {
-        rel_thing_id: ID! @beehiveIndex(primary: true)
+        rel_thing_id: ID!
         name: String
         thing: Thing @beehiveRelation(target_type_name: "Thing")
         subject: String
@@ -34,12 +34,12 @@ const rootDefs = `
 
     type ThingList {
         data: [Thing!]!
-        page_info: pageInfo!
+        page_info: PageInfo!
     }
 
     type RelatedThingsList {
         data: [RelatedThing!]!
-        page_info: pageInfo
+        page_info: PageInfo
     }
 
     type Query {
