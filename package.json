@@ -1,0 +1,31 @@
+{
+    "name": "@wildflowerschools/graphql-beehive",
+    "version": "0.5.0",
+    "description": "A set of tools for working with PostgreSQL and GraphQL",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node_modules/.bin/nodemon src/test-server.js"
+    },
+    "author": "optimuspaul",
+    "license": "MIT",
+    "dependencies": {
+        "graphql": "^14.0.2",
+        "graphql-custom-types": "^1.4.0",
+        "graphql-directive": "^0.2.1",
+        "graphql-tools": "^4.0.1",
+        "graphql-voyager": "^1.0.0-rc.26",
+        "pg": "^7.5.0"
+    },
+    "devDependencies": {
+        "apollo": "^1.9.2",
+        "apollo-server": "^2.1.0",
+        "apollo-server-express": "^2.1.0",
+        "body-parser": "^1.18.3",
+        "express": "^4.16.4",
+        "npm": "^6.4.1",
+        "chai": "^4.2.0",
+        "mocha": "^5.2.0",
+        "nodemon": "^1.18.4",
+        "nyc": "^13.1.0"
+    }
+}
