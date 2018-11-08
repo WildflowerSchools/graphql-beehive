@@ -1,0 +1,26 @@
+language: node_js
+node_js:
+- 10.12.0
+env:
+  global:
+  - GIT_TAG=v$(date -u "+%Y-%m-%d-%H-%M-%S")-$TRAVIS_BUILD_NUMBER
+  - secure: oH5DNDBnz1wV1H+h3BADzU+RWRpXfrQSrFn8+ejRJGBi8I6zT2ri38pYAxTIV+HqyJYTmxe03sJuN3hyeO8GqrwXxY+B5O4BjpXGlv598P3mG2VPxqfjz27OCUQiv1edP+vjRkbGU4G/7RIFf7cyfLLvXizVgaHuHdBIYEdac8vEvlKPg3vygUtAzbL02JkIhEZbUCw3bBIacr9338Ki7WjXER8eN8nfeRNUm761YF1l/jt9/6eoQgXmmB2qO09FxklCH8nG84N4nxExyI4RVcDnEAg3eZU6NhaYuLEkV0dZvIsu2T5+yMOsvZMLEbqf7B8Ezuv648uTgl3kyTTiiMIIUZyL4jdZNrsiopX+Vgjx/dgpGVjtNmF25nLu0sBbyhnDDAa1L+LGQQxEwAA52Hi/+0wz4wGA+VC4rrx6GNRXDAoinfY1plq7nwBl3iAYddZfAzLj2ncH7/MfdIFvZcwCGjAgHsbhzOQFyGna+6mMZXbLHOn/r3nlZPbz7VpsvvMgbF8CU0Xd5mD/MWk8Gn7aaVS6c0J49YZn+09uXIP2rIay9ZPDdqrwhFPk9fglgFoB5pd8R4c2RGXQ4B7D6mg1HEKjnztcM3RPPGg+rWKNA8WmN+ThHF6GsVAWtUyYlvslS2HqrTCGRN0SXWLjs70HeZglcVIqIhp66PIhrvc=
+sudo: required
+dist: trusty
+services:
+- docker
+before_install:
+- sudo rm /usr/local/bin/docker-compose
+- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname
+  -s`-`uname -m` > docker-compose
+- chmod +x docker-compose
+- sudo mv docker-compose /usr/local/bin
+- npm install
+- docker pull postgres:10.4
+script:
+- npm run coverage
+deploy:
+  provider: script
+  on:
+    type: push
+  script: bash scripts/tag.sh
