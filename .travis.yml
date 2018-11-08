@@ -17,13 +17,12 @@ before_install:
 - sudo mv docker-compose /usr/local/bin
 - docker pull postgres:10.4
 - sudo service postgresql stop
+- bash scripts/update_version.sh
+- cat package.json
 install:
 - npm ci
 script:
 - npm run coverage
-after_script:
-- bash scripts/update_version.sh
-- cat package.json
 deploy:
   matrix:
   - provider: script
