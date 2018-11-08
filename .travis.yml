@@ -17,6 +17,7 @@ before_install:
 - sudo mv docker-compose /usr/local/bin
 - npm install
 - docker pull postgres:10.4
+- sudo service postgresql stop
 script:
 - npm run coverage
 deploy:
