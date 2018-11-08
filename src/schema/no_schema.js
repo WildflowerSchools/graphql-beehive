@@ -13,7 +13,7 @@ exports.schema = makeExecutableSchema({
   typeDefs: [
     BeehiveTypeDefs,
 `
-    type Thing @beehiveTable(table_name: "things", pk_column: "thing_id") {
+    type Thing @beehiveTable(table_name: "things") {
         thing_id: ID!
         name: String
         related: [RelatedThing!] @beehiveRelation(target_type_name: "RelatedThing", target_field_name: "thing")
@@ -59,7 +59,7 @@ exports.schema = makeExecutableSchema({
         newRelatedThing(relatedThing: RelatedThingInput): RelatedThing! @beehiveCreate(target_type_name: "RelatedThing")
     }
 
-    schema @beehive(schema_name: "beehive_tests") {
+    schema {
         query: Query
         mutation: Mutation
     }
