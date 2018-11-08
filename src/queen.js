@@ -257,7 +257,7 @@ exports.ensureDatabase = async function(schema) {
         for (var type of Object.keys(schema._beehive.tables)) {
             const table = schema._beehive.tables[type]
             console.log(`checking for '${table.table_name}' table`)
-            await client.query(`CREATE TABLE IF NOT EXISTS ${schema._beehive.schema_name}.${table.table_name} (${table.pk_column} UUID PRIMARY KEY, data JSONB)`)
+            await client.query(`CREATE TABLE IF NOT EXISTS ${schema._beehive.schema_name}.${table.table_name} (${table.pk_column} UUID PRIMARY KEY, data JSONB, created timestamp DEFAULT current_timestamp, last_modified timestamp)`)
             console.log(`table '${table.table_name}' should exist now`)
             await client.query(`CREATE INDEX IF NOT EXISTS ${schema._beehive.schema_name}_${table.table_name}_jsonbgin ON ${schema._beehive.schema_name}.${table.table_name} USING gin (data)`)
             console.log(`jsonb index '${table.table_name}' should exist now`)
