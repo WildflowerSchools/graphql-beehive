@@ -1,5 +1,5 @@
 const express = require("express");
-const { ApolloServer, gql } = require('apollo-server-express');
+const { ApolloServer } = require('apollo-server-express');
 const { schema } = require("./schema");
 const voyager = require('graphql-voyager/middleware');
 const { ensureDatabase } = require('./queen');
@@ -29,7 +29,7 @@ const server = new ApolloServer({
 
 const app = express();
 
-app.use('/voyager', voyager.express({ endpointUrl: '/graphql' }));
+app.use('/voyager', voyager.express({ endpointUrl: server.graphqlPath }));
 
 server.applyMiddleware({ app });
 

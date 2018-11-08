@@ -104,8 +104,6 @@ class BeehiveMutationDirective extends SchemaDirectiveVisitor {
             }
 
             for (var field_name of Object.keys(table_config.type._fields)) {
-                // const ft = table_config.type._fields[field_name].type
-                // TODO - lookup to see if a field is a scalar or not
                 if(field_name in input) {
                     forDB[field_name] = input[field_name]
                 }

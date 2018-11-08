@@ -93,11 +93,13 @@ The `beehiveCreate` directive attaches an insert resolver to the mutation. You n
 
 ### TODOs
 
+- More tests, coverage is adequate but could be better, especially for failure cases
 - `PaginationInput` is not yet implemented
 - `PageInfo` is not yet implemented
 - `@beehiveCreate` does not handle nested objects well at this point
 - Update mutations are not yet supported
 - Delete mutations are not yet supported
+- Better logic in the database provisioning, right now it just blindly does a "create if not exists", but maybe needs to be more resilient?
 
 ## Contributing
 

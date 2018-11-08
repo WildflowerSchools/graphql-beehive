@@ -4,7 +4,12 @@
     "description": "A set of tools for working with PostgreSQL and GraphQL",
     "main": "src/index.js",
     "scripts": {
+        "test": "mocha src/**.spec.js --timeout 30000",
+        "coverage": "node_modules/.bin/nyc npm test",
         "start": "node_modules/.bin/nodemon src/test-server.js"
+    },
+    "publishConfig": {
+        "access": "public"
     },
     "author": "optimuspaul",
     "license": "MIT",
@@ -20,12 +25,40 @@
         "apollo": "^1.9.2",
         "apollo-server": "^2.1.0",
         "apollo-server-express": "^2.1.0",
+        "axios": "^0.18.0",
         "body-parser": "^1.18.3",
-        "express": "^4.16.4",
-        "npm": "^6.4.1",
         "chai": "^4.2.0",
+        "docker-run": "^3.1.0",
+        "express": "^4.16.4",
+        "graphql-request": "^1.8.2",
         "mocha": "^5.2.0",
         "nodemon": "^1.18.4",
-        "nyc": "^13.1.0"
+        "npm": "^6.4.1",
+        "nyc": "^13.1.0",
+        "request": "^2.88.0",
+        "wait-port": "^0.2.2"
+    },
+    "nyc": {
+        "check-coverage": true,
+        "per-file": true,
+        "lines": 70,
+        "statements": 70,
+        "functions": 70,
+        "branches": 50,
+        "include": [
+            "src/**/*.js"
+        ],
+        "exclude": [
+            "src/**/*.spec.js",
+            "src/schema/*.js",
+            "src/test*.js",
+            "src/index.js"
+        ],
+        "reporter": [
+            "lcov",
+            "text-summary"
+        ],
+        "cache": true,
+        "all": true
     }
 }
