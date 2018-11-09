@@ -1,6 +1,6 @@
 {
     "name": "@wildflowerschools/graphql-beehive",
-    "version": "0.5.4",
+    "version": "0.5.5",
     "description": "A set of tools for working with PostgreSQL and GraphQL",
     "main": "src/index.js",
     "scripts": {
