@@ -28,6 +28,7 @@
         "axios": "^0.18.0",
         "body-parser": "^1.18.3",
         "chai": "^4.2.0",
+        "debug": "^4.1.0",
         "docker-run": "^3.1.0",
         "express": "^4.16.4",
         "graphql-request": "^1.8.2",
@@ -58,7 +59,7 @@
             "lcov",
             "text-summary"
         ],
-        "cache": true,
+        "cache": false,
         "all": true
     }
 }

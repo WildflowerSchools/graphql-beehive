@@ -18,6 +18,7 @@ process.env.PGPORT = "5432"
 var dbContainer
 
 
+
 before(async function() {
     // helper for waiting for things
     function sleep(ms) {
@@ -112,8 +113,10 @@ describe('Beehive test suite', function(){
                     query {
                       things {
                         data {
-                            thing_id
-                            name
+                            ... on Thing {
+                                thing_id
+                                name
+                            }
                         }
                       }
                     }

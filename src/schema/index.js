@@ -44,7 +44,7 @@ exports.schema = makeExecutableSchema({
     }
 
     type ThingList {
-        data: [Thing!]!
+        data: [AnyThing!]!
         page_info: PageInfo!
     }
 
