@@ -11,7 +11,7 @@ process.env.check_db_schema = "true"
 exports.BeehiveTypeDefs = `
     directive @beehive (schema_name: String) on SCHEMA
 
-    directive @beehiveTable (table_name: String, pk_column: String) on OBJECT
+    directive @beehiveTable (table_name: String, pk_column: String) on OBJECT | INTERFACE
 
     directive @beehiveCreate(target_type_name: String!) on FIELD_DEFINITION
 
@@ -37,6 +37,11 @@ exports.BeehiveTypeDefs = `
         count: Int
         max: Int
         cursor: String
+    }
+
+    type System {
+        created: String!
+        last_modified: String
     }
 
 `
@@ -70,6 +75,10 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
         this.schema._beehive.tables[type.name] = table_config
     }
 
+    visitInterface(type) {
+        return visitObject(type)
+    }
+
     visitSchema(schema) {
         schema._beehive = {
             schema_name: this.args.schema_name ? this.args.schema_name : "beehive",
@@ -87,6 +96,9 @@ class BeehiveMutationDirective extends SchemaDirectiveVisitor {
         const inputName = target_type_name.charAt(0).toLowerCase() + target_type_name.slice(1)
         const schema = this.schema
         const table_config = this.schema._beehive.tables[target_type_name]
+        if(!table_config) {
+            throw Error(`Table definition (${target_type_name}) not forund by beehive.`)
+        }
         const pk_column = table_config.pk_column
         
         field.resolve = async function (obj, args, context, info) {
@@ -124,7 +136,7 @@ class BeehiveMutationDirective extends SchemaDirectiveVisitor {
             } finally {
                 client.release()
             }
-            var things = await pool.query(`SELECT data FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${pk_column} = $1`, [thing_id])
+            var things = await pool.query(`SELECT created, last_modified, data FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${pk_column} = $1`, [thing_id])
             return things.rows[0].data
         };
     }
@@ -140,7 +152,7 @@ class BeehiveListDirective extends SchemaDirectiveVisitor {
 
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
-            var things = await pool.query(`SELECT data FROM ${schema._beehive.schema_name}.${table_config.table_name}`)
+            var things = await pool.query(`SELECT created, last_modified, data FROM ${schema._beehive.schema_name}.${table_config.table_name}`)
 
             var rows = []
             for(var row of things.rows) {
@@ -181,7 +193,7 @@ class BeehiveGetDirective extends SchemaDirectiveVisitor {
 
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
-            var things = await pool.query(`SELECT data FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`, [args[table_config.pk_column]])
+            var things = await pool.query(`SELECT created, last_modified, data FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`, [args[table_config.pk_column]])
 
             if(things.rows.length) {
                 return things.rows[0].data
@@ -210,7 +222,7 @@ class BeehiveRelationDirective extends SchemaDirectiveVisitor {
             const table_config = schema._beehive.tables[target_type_name]
             if(isListType) {
                 const local_table_config = schema._beehive.tables[this_object_type]
-                var query = `SELECT data FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${obj[local_table_config.pk_column]}"}'`
+                var query = `SELECT created, last_modified, data FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${obj[local_table_config.pk_column]}"}'`
                 var things = await pool.query(query)
                 var rows = []
                 for(var row of things.rows) {
@@ -218,7 +230,7 @@ class BeehiveRelationDirective extends SchemaDirectiveVisitor {
                 }
                 return rows
             } else {
-                var things = await pool.query(`SELECT data FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`, [obj[field_name]])
+                var things = await pool.query(`SELECT created, last_modified, data FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`, [obj[field_name]])
                 if(things.rows.length) {
                     return things.rows[0].data
                 }
@@ -257,7 +269,7 @@ exports.ensureDatabase = async function(schema) {
         for (var type of Object.keys(schema._beehive.tables)) {
             const table = schema._beehive.tables[type]
             console.log(`checking for '${table.table_name}' table`)
-            await client.query(`CREATE TABLE IF NOT EXISTS ${schema._beehive.schema_name}.${table.table_name} (${table.pk_column} UUID PRIMARY KEY, data JSONB, created timestamp DEFAULT current_timestamp, last_modified timestamp)`)
+            await client.query(`CREATE TABLE IF NOT EXISTS ${schema._beehive.schema_name}.${table.table_name} (${table.pk_column} UUID PRIMARY KEY, data JSONB, created timestamp DEFAULT current_timestamp, last_modified timestamp`)
             console.log(`table '${table.table_name}' should exist now`)
             await client.query(`CREATE INDEX IF NOT EXISTS ${schema._beehive.schema_name}_${table.table_name}_jsonbgin ON ${schema._beehive.schema_name}.${table.table_name} USING gin (data)`)
             console.log(`jsonb index '${table.table_name}' should exist now`)

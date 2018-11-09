@@ -13,7 +13,12 @@ exports.schema = makeExecutableSchema({
   typeDefs: [
     BeehiveTypeDefs,
 `
-    type Thing @beehiveTable(table_name: "things", pk_column: "thing_id") {
+
+    interface AnyThing @beehiveTable(table_name: "things", pk_column: "thing_id") {
+        thing_id: ID!
+    }
+
+    type Thing implements AnyThing @beehiveTable(table_name: "things", pk_column: "thing_id") {
         thing_id: ID!
         name: String
         related: [RelatedThing!] @beehiveRelation(target_type_name: "RelatedThing", target_field_name: "thing")
