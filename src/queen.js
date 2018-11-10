@@ -1,7 +1,5 @@
-const uuidv4 = require('uuid/v4');
-const {
-    SchemaDirectiveVisitor,
-} = require('graphql-tools');
+const uuidv4 = require('uuid/v4')
+const {SchemaDirectiveVisitor} = require('graphql-tools')
 const { Pool } = require('pg')
 const pool = new Pool()
 
@@ -45,6 +43,10 @@ exports.BeehiveTypeDefs = `
         last_modified: String
     }
 
+    type _beehive_helper_ {
+        system: System!
+    }
+
 `
 
 function findIdField(obj) {
@@ -84,19 +86,12 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
             table_config["table_name"] = this.args.table_name
         }
 
+        type._fields.system = this.schema._typeMap._beehive_helper_._fields.system
+
         this.schema._beehive.tables[type.name] = table_config
     }
 
     visitInterface(type) {
-        console.log("interface visited")
-        console.log("interface visited")
-        console.log("interface visited")
-        console.log("interface visited")
-        console.log("interface visited")
-        console.log("interface visited")
-        console.log("interface visited")
-        console.log("interface visited")
-        console.log("interface visited")
         this.visitObject(type)
         type.resolveType = async function(obj, context, info) {
             return obj.system.type_name
