@@ -4,8 +4,6 @@ services:
   postgres:
     image: postgres:10.4
     restart: always
-    ports:
-      - "8334:5432"
     environment:
       POSTGRES_PASSWORD: iamaninsecurepassword
       POSTGRES_USER: beehive_user
@@ -23,7 +21,6 @@ services:
       PGUSER: beehive_user
       PGDATABASE: beehive
       PGHOST: postgres
-      PGPORT: "5432"
     ports:
       - 4022:4000
     command: "scripts/setup-and-startup.sh"
