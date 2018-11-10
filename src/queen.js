@@ -2,6 +2,8 @@ const uuidv4 = require('uuid/v4')
 const {SchemaDirectiveVisitor} = require('graphql-tools')
 const { Pool } = require('pg')
 const pool = new Pool()
+const dateFormat = require('dateformat')
+
 
 process.env.check_db_schema = "true"
 
@@ -16,6 +18,8 @@ exports.BeehiveTypeDefs = `
     directive @beehiveList(target_type_name: String!) on FIELD_DEFINITION
 
     directive @beehiveRelation(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
+
+    directive @beehiveUTCDate on FIELD_DEFINITION
 
     directive @beehiveQuery(
             target_type_name: String!
@@ -39,8 +43,8 @@ exports.BeehiveTypeDefs = `
 
     type System {
         type_name: String!
-        created: String!
-        last_modified: String
+        created: String! @beehiveUTCDate
+        last_modified: String @beehiveUTCDate
     }
 
     type _beehive_helper_ {
@@ -262,6 +266,19 @@ class BeehiveRelationDirective extends SchemaDirectiveVisitor {
 }
 
 
+class beehiveUTCDateDirective extends SchemaDirectiveVisitor {
+
+    visitFieldDefinition(field, details) {
+        const field_name = field.name
+
+        field.resolve = async function (obj, args, context, info) {
+            return dateFormat(obj[field_name], "isoUtcDateTime")
+        }
+    }
+
+}
+
+
 
 
 exports.BeehiveDirective = BeehiveDirective
@@ -275,6 +292,7 @@ exports.BeehiveDirectives = {
     beehiveQuery: BeehiveQueryDirective,
     beehiveGet: BeehiveGetDirective,
     beehiveRelation: BeehiveRelationDirective,
+    beehiveUTCDate: beehiveUTCDateDirective
 };
 
 exports.ensureDatabase = async function(schema) {
