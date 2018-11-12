@@ -11,7 +11,7 @@ process.env.check_db_schema = "true"
 exports.BeehiveTypeDefs = `
     directive @beehive (schema_name: String) on SCHEMA
 
-    directive @beehiveTable (table_name: String, pk_column: String) on OBJECT | INTERFACE
+    directive @beehiveTable (table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
 
     directive @beehiveCreate(target_type_name: String!) on FIELD_DEFINITION
 
@@ -73,6 +73,7 @@ function applySystem(row) {
 }
 
 
+
 class BeehiveDirective extends SchemaDirectiveVisitor {
 
     visitObject(type) {
@@ -93,11 +94,29 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
         type._fields.system = this.schema._typeMap._beehive_helper_._fields.system
 
         this.schema._beehive.tables[type.name] = table_config
+        this.schema._beehive.lctypemap[type.name.toLowerCase()] = type.name
     }
 
     visitInterface(type) {
+        // visit the object to get all the benefits of table creation
         this.visitObject(type)
+
+        // beehive is brought into scope for the resolveType function
+        const _beehive = this.schema._beehive
+        // field to use to do a type resolution
+        const resolve_type_field = this.args.resolve_type_field
         type.resolveType = async function(obj, context, info) {
+            // this is the actual resolver
+            // if the resolve_type_field is set then we do a lookup on the object
+            // and the lctypemap to determine the actual type
+            if(resolve_type_field) {
+                var resolvedType = obj[resolve_type_field]
+                resolvedType = _beehive.lctypemap[resolvedType.toLowerCase()]
+                return resolvedType
+            }
+            // otherwise, we just return the type name, it most cases this doesn't help since it will always be equal to the interface name
+            // TODO: maybe that statement isn't true, maybe if the target type on the create is the actual type and not the interface then it
+            //   will actually be able to resolve to the correct type but still share a table.
             return obj.system.type_name
         }
     }
@@ -106,6 +125,7 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
         schema._beehive = {
             schema_name: this.args.schema_name ? this.args.schema_name : "beehive",
             tables: [],
+            lctypemap: [],
         }
     }
 
