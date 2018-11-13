@@ -2,13 +2,18 @@ const uuidv4 = require('uuid/v4')
 const {SchemaDirectiveVisitor} = require('graphql-tools')
 const { Pool } = require('pg')
 const pool = new Pool()
-const dateFormat = require('dateformat')
+const gqldate = require("graphql-iso-date");
 
 
-process.env.check_db_schema = "true"
+exports.BeehiveResolvers = {
+    Datetime: gqldate.GraphQLDateTime,
+}
 
 
 exports.BeehiveTypeDefs = `
+    # ISO formated Date Timestamp
+    scalar Datetime
+
     directive @beehive (schema_name: String) on SCHEMA
 
     directive @beehiveTable (table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
@@ -19,7 +24,7 @@ exports.BeehiveTypeDefs = `
 
     directive @beehiveRelation(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
 
-    directive @beehiveUTCDate on FIELD_DEFINITION
+    directive @beehiveUnion on UNION
 
     directive @beehiveQuery(
             target_type_name: String!
@@ -43,8 +48,8 @@ exports.BeehiveTypeDefs = `
 
     type System {
         type_name: String!
-        created: String! @beehiveUTCDate
-        last_modified: String @beehiveUTCDate
+        created: Datetime!
+        last_modified: Datetime
     }
 
     type _beehive_helper_ {
@@ -286,18 +291,13 @@ class BeehiveRelationDirective extends SchemaDirectiveVisitor {
 }
 
 
-class beehiveUTCDateDirective extends SchemaDirectiveVisitor {
-
-    visitFieldDefinition(field, details) {
-        const field_name = field.name
-
-        field.resolve = async function (obj, args, context, info) {
-            return dateFormat(obj[field_name], "isoUtcDateTime")
-        }
+class BeehiveUnionDirective extends SchemaDirectiveVisitor {
+    visitUnion(union) {
+        union.resolveType = async function(obj, context, info) {
+            return obj.system.type_name
+        } 
     }
-
 }
-
 
 
 
@@ -312,7 +312,7 @@ exports.BeehiveDirectives = {
     beehiveQuery: BeehiveQueryDirective,
     beehiveGet: BeehiveGetDirective,
     beehiveRelation: BeehiveRelationDirective,
-    beehiveUTCDate: beehiveUTCDateDirective
+    beehiveUnion: BeehiveUnionDirective
 };
 
 exports.ensureDatabase = async function(schema) {

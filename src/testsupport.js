@@ -1,6 +1,8 @@
 const { Pool } = require('pg')
 const pool = new Pool()
 
+const { BeehiveResolvers } = require("./queen")
+
 
 exports.cleanPostgres = async function() {
     try {

@@ -98,6 +98,9 @@ describe('Beehive test suite', function(){
                       newThing(thing: {name: "thing"}) {
                         thing_id
                         name
+                        system {
+                            created
+                        }
                       }
                     }
                 `
@@ -106,6 +109,7 @@ describe('Beehive test suite', function(){
             expect(thing).to.not.equal(null)
             expect(thing.newThing.thing_id).to.not.equal(null)
             expect(thing.newThing.name).to.equal("thing")
+            expect(thing.newThing.system.createa).to.not.equal(null)
         })
 
         it('list things', async function() {
@@ -147,6 +151,7 @@ describe('Beehive test suite', function(){
                             thing {
                                 thing_id
                             }
+                            start
                         }
                     }
                 `
