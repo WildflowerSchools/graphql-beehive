@@ -17,6 +17,7 @@
         "graphql": "^14.0.2",
         "graphql-custom-types": "^1.4.0",
         "graphql-directive": "^0.2.1",
+        "graphql-iso-date": "^3.6.1",
         "graphql-tools": "^4.0.1",
         "graphql-voyager": "^1.0.0-rc.26",
         "pg": "^7.5.0"

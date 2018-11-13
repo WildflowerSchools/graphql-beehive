@@ -2,20 +2,29 @@ const uuidv4 = require('uuid/v4')
 const {SchemaDirectiveVisitor} = require('graphql-tools')
 const { Pool } = require('pg')
 const pool = new Pool()
+const gqldate = require("graphql-iso-date");
 
-process.env.check_db_schema = "true"
+
+exports.BeehiveResolvers = {
+    Datetime: gqldate.GraphQLDateTime,
+}
 
 
 exports.BeehiveTypeDefs = `
+    # ISO formated Date Timestamp
+    scalar Datetime
+
     directive @beehive (schema_name: String) on SCHEMA
 
-    directive @beehiveTable (table_name: String, pk_column: String) on OBJECT | INTERFACE
+    directive @beehiveTable (table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
 
     directive @beehiveCreate(target_type_name: String!) on FIELD_DEFINITION
 
     directive @beehiveList(target_type_name: String!) on FIELD_DEFINITION
 
     directive @beehiveRelation(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
+
+    directive @beehiveUnion on UNION
 
     directive @beehiveQuery(
             target_type_name: String!
@@ -39,8 +48,8 @@ exports.BeehiveTypeDefs = `
 
     type System {
         type_name: String!
-        created: String!
-        last_modified: String
+        created: Datetime!
+        last_modified: Datetime
     }
 
     type _beehive_helper_ {
@@ -69,6 +78,7 @@ function applySystem(row) {
 }
 
 
+
 class BeehiveDirective extends SchemaDirectiveVisitor {
 
     visitObject(type) {
@@ -89,11 +99,29 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
         type._fields.system = this.schema._typeMap._beehive_helper_._fields.system
 
         this.schema._beehive.tables[type.name] = table_config
+        this.schema._beehive.lctypemap[type.name.toLowerCase()] = type.name
     }
 
     visitInterface(type) {
+        // visit the object to get all the benefits of table creation
         this.visitObject(type)
+
+        // beehive is brought into scope for the resolveType function
+        const _beehive = this.schema._beehive
+        // field to use to do a type resolution
+        const resolve_type_field = this.args.resolve_type_field
         type.resolveType = async function(obj, context, info) {
+            // this is the actual resolver
+            // if the resolve_type_field is set then we do a lookup on the object
+            // and the lctypemap to determine the actual type
+            if(resolve_type_field) {
+                var resolvedType = obj[resolve_type_field]
+                resolvedType = _beehive.lctypemap[resolvedType.toLowerCase()]
+                return resolvedType
+            }
+            // otherwise, we just return the type name, it most cases this doesn't help since it will always be equal to the interface name
+            // TODO: maybe that statement isn't true, maybe if the target type on the create is the actual type and not the interface then it
+            //   will actually be able to resolve to the correct type but still share a table.
             return obj.system.type_name
         }
     }
@@ -102,6 +130,7 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
         schema._beehive = {
             schema_name: this.args.schema_name ? this.args.schema_name : "beehive",
             tables: [],
+            lctypemap: [],
         }
     }
 
@@ -262,6 +291,14 @@ class BeehiveRelationDirective extends SchemaDirectiveVisitor {
 }
 
 
+class BeehiveUnionDirective extends SchemaDirectiveVisitor {
+    visitUnion(union) {
+        union.resolveType = async function(obj, context, info) {
+            return obj.system.type_name
+        } 
+    }
+}
+
 
 
 exports.BeehiveDirective = BeehiveDirective
@@ -275,6 +312,7 @@ exports.BeehiveDirectives = {
     beehiveQuery: BeehiveQueryDirective,
     beehiveGet: BeehiveGetDirective,
     beehiveRelation: BeehiveRelationDirective,
+    beehiveUnion: BeehiveUnionDirective
 };
 
 exports.ensureDatabase = async function(schema) {

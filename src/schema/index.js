@@ -35,12 +35,14 @@ exports.schema = makeExecutableSchema({
         name: String
         thing: Thing @beehiveRelation(target_type_name: "Thing")
         subject: String
+        start: Datetime
     }
 
     input RelatedThingInput {
         name: String
         thing: ID!
         subject: String
+        start: Datetime
     }
 
     type ThingList {
