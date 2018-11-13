@@ -109,7 +109,7 @@ describe('Beehive test suite', function(){
             expect(thing).to.not.equal(null)
             expect(thing.newThing.thing_id).to.not.equal(null)
             expect(thing.newThing.name).to.equal("thing")
-            expect(thing.newThing.system.createa).to.not.equal(null)
+            expect(thing.newThing.system.created).to.not.equal(null)
         })
 
         it('list things', async function() {
