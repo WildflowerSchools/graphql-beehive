@@ -63,6 +63,7 @@ exports.schema = makeExecutableSchema({
 
     type Mutation {
         newThing(thing: ThingInput): Thing! @beehiveCreate(target_type_name: "Thing")
+        replaceThing(thing_id: ID!, thing: ThingInput!): Thing! @beehiveReplace(target_type_name: "Thing")
         newRelatedThing(relatedThing: RelatedThingInput): RelatedThing! @beehiveCreate(target_type_name: "RelatedThing")
     }
 

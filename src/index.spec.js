@@ -112,6 +112,37 @@ describe('Beehive test suite', function(){
             expect(thing.newThing.system.created).to.not.equal(null)
         })
 
+        it('replaces a thing', async function() {
+            var query = `
+                    mutation {
+                      newThing(thing: {name: "tobereplaced"}) {
+                        thing_id
+                        name
+                        system {
+                            created
+                        }
+                      }
+                    }
+                `
+            var thing = await request(uri, query)
+            expect(thing.newThing.name).to.equal("tobereplaced")
+            query = `
+                    mutation {
+                        replaceThing(thing_id: "${thing.newThing.thing_id}", thing: {name: "replaced"}) {
+                            thing_id
+                            name
+                            system {
+                                created
+                                last_modified
+                            }
+                        }
+                    }
+                `
+            var replacedthing = await request(uri, query)
+            expect(replacedthing.replaceThing.name).to.equal("replaced")
+            expect(replacedthing.replaceThing.thing_id).to.equal(thing.newThing.thing_id)
+        })
+
         it('list things', async function() {
             var query = `
                     query {
