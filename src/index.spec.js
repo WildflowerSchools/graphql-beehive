@@ -143,6 +143,33 @@ describe('Beehive test suite', function(){
             expect(replacedthing.replaceThing.thing_id).to.equal(thing.newThing.thing_id)
         })
 
+        it('patch a related thing', async function() {
+            var query = `
+                    mutation {
+                      newRelatedThing(relatedThing: {name: "munster", subject: "director"}) {
+                            rel_thing_id
+                            name
+                            subject
+                        }
+                    }
+                `
+            var thing = await request(uri, query)
+            expect(thing.newRelatedThing.name).to.equal("munster")
+            expect(thing.newRelatedThing.subject).to.equal("director")
+            query = `
+                    mutation {
+                        updateRelatedThing(rel_thing_id: "${thing.newRelatedThing.rel_thing_id}", relatedThing: {subject: "futurama"}) {
+                            rel_thing_id
+                            name
+                            subject
+                        }
+                    }
+                `
+            thing = await request(uri, query)
+            expect(thing.updateRelatedThing.name).to.equal("munster")
+            expect(thing.updateRelatedThing.subject).to.equal("futurama")
+        })
+
         it('list things', async function() {
             var query = `
                     query {
@@ -160,8 +187,8 @@ describe('Beehive test suite', function(){
             console.log(things)
             expect(things).to.not.equal(null)
             expect(things.things.data).to.not.equal(null)
-            // expect(things.data[0].thing_id).to.not.equal(null)
-            // expect(things.data[0].name).to.equal("thing")
+            expect(things.things.data[0].thing_id).to.not.equal(null)
+            expect(things.things.data[0].name).to.equal("thing")
         })
 
         it('create a related thing', async function() {

@@ -40,7 +40,7 @@ exports.schema = makeExecutableSchema({
 
     input RelatedThingInput {
         name: String
-        thing: ID!
+        thing: ID
         subject: String
         start: Datetime
     }
@@ -65,6 +65,7 @@ exports.schema = makeExecutableSchema({
         newThing(thing: ThingInput): Thing! @beehiveCreate(target_type_name: "Thing")
         replaceThing(thing_id: ID!, thing: ThingInput!): Thing! @beehiveReplace(target_type_name: "Thing")
         newRelatedThing(relatedThing: RelatedThingInput): RelatedThing! @beehiveCreate(target_type_name: "RelatedThing")
+        updateRelatedThing(rel_thing_id: ID!, relatedThing: RelatedThingInput!): RelatedThing! @beehiveUpdate(target_type_name: "RelatedThing")
     }
 
     schema @beehive(schema_name: "beehive_tests") {

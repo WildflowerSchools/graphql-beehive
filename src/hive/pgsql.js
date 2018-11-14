@@ -140,7 +140,22 @@ exports.putType = async function(schema, table_config, pk, input) {
 }
 
 
-exports.patchType = async function(schema, table_config, input) {
+exports.patchType = async function(schema, table_config, pk, input) {
+    var current = await exports.getItem(schema, table_config, pk)
 
+    if(!current) {
+        throw Error(`Object of type ${table_config.type.name} with primary key ${pk} not found`)
+    }
+
+    var putInput = {}
+
+    for (var field_name of Object.keys(current)) {
+        if(field_name in input) {
+            putInput[field_name] = input[field_name]
+        } else {
+            putInput[field_name] = current[field_name]
+        }
+    }
+    return exports.putType(schema, table_config, pk, putInput)
 }
 
