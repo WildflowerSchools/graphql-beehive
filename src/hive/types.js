@@ -1,5 +1,5 @@
 const {SchemaDirectiveVisitor} = require('graphql-tools')
-const {insertType, listType, getItem, getRelatedItems, putType} = require("./pgsql")
+const {insertType, listType, getItem, getRelatedItems, putType, patchType} = require("./pgsql")
 
 
 exports.BeehiveTypeDefs = `
@@ -11,6 +11,8 @@ exports.BeehiveTypeDefs = `
     directive @beehiveTable (table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
 
     directive @beehiveCreate(target_type_name: String!) on FIELD_DEFINITION
+    
+    directive @beehiveUpdate(target_type_name: String!) on FIELD_DEFINITION
     
     directive @beehiveReplace(target_type_name: String!) on FIELD_DEFINITION
 
@@ -157,6 +159,21 @@ class BeehiveReplaceDirective extends SchemaDirectiveVisitor {
 
 }
 
+class BeehiveUpdateDirective extends SchemaDirectiveVisitor {
+
+    visitFieldDefinition(field, details) {
+        const target_type_name = this.args.target_type_name
+        const inputName = target_type_name.charAt(0).toLowerCase() + target_type_name.slice(1)
+        const schema = this.schema
+
+        field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            return patchType(schema, table_config, args[table_config.pk_column], args[inputName])
+        }
+    }
+
+}
+
 
 class BeehiveListDirective extends SchemaDirectiveVisitor {
 
@@ -247,4 +264,5 @@ exports.BeehiveDirectives = {
     beehiveRelation: BeehiveRelationDirective,
     beehiveUnion: BeehiveUnionDirective,
     beehiveReplace: BeehiveReplaceDirective,
+    beehiveUpdate: BeehiveUpdateDirective
 };
