@@ -1,6 +1,7 @@
-const {BeehiveDirectives, BeehiveTypeDefs, ensureDatabase, BeehiveResolvers} = require("./queen")
+const {BeehiveResolvers, BeehiveDirectives, BeehiveTypeDefs, ensureDatabase, hivePg} = require("./hive")
 
+exports.BeehiveResolvers = BeehiveResolvers
 exports.BeehiveDirectives = BeehiveDirectives
 exports.BeehiveTypeDefs = BeehiveTypeDefs
 exports.ensureDatabase = ensureDatabase
-exports.BeehiveResolvers = BeehiveResolvers
+exports.hivePg = hivePg

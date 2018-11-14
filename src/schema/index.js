@@ -2,7 +2,7 @@ const {
   makeExecutableSchema,
   mergeSchemas,
 } = require('graphql-tools');
-const {BeehiveDirectives, BeehiveTypeDefs} = require("../queen")
+const {BeehiveDirectives, BeehiveTypeDefs} = require("../hive")
 
 
 

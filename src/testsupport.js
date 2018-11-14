@@ -1,7 +1,7 @@
 const { Pool } = require('pg')
 const pool = new Pool()
 
-const { BeehiveResolvers } = require("./queen")
+const { BeehiveResolvers } = require("./hive")
 
 
 exports.cleanPostgres = async function() {
@@ -39,7 +39,7 @@ exports.server = async function(schema) {
     const express = require("express");
     const { ApolloServer } = require('apollo-server-express');
     const voyager = require('graphql-voyager/middleware');
-    const { ensureDatabase } = require('./queen');
+    const { ensureDatabase } = require('./hive');
 
 
     await (async () => {
