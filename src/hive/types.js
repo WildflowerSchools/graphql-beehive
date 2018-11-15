@@ -11,10 +11,14 @@ exports.BeehiveTypeDefs = `
     directive @beehiveTable (table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
 
     directive @beehiveCreate(target_type_name: String!) on FIELD_DEFINITION
-    
+
     directive @beehiveUpdate(target_type_name: String!) on FIELD_DEFINITION
-    
+
     directive @beehiveReplace(target_type_name: String!) on FIELD_DEFINITION
+
+     // Deleting fields.
+
+    directive @beehiveDelete(target_type_name: String!) on FIELD_DEFINITION
 
     directive @beehiveList(target_type_name: String!) on FIELD_DEFINITION
 
@@ -61,6 +65,7 @@ function findIdField(obj) {
     }
     return "id"
 }
+
 
 
 class BeehiveDirective extends SchemaDirectiveVisitor {
@@ -120,6 +125,24 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
 
 }
 
+class BeehiveDeleteDirective extends SchemaDirectiveVisitor{
+
+  visitFieldDefinition(field, details) {
+    const target_type_name = this.args.target_type_name
+    const schema = this.schema
+    const table_config = this.schema._beehive.tables[target_type_name]
+
+    field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            delete schema._beehive.tables[target_type_name]
+            // is this enough to delete
+            console.log("deleted");
+        }
+    }
+
+}
+
+
 
 class BeehiveCreateDirective extends SchemaDirectiveVisitor {
 
@@ -131,13 +154,13 @@ class BeehiveCreateDirective extends SchemaDirectiveVisitor {
         if(!table_config) {
             throw Error(`Table definition (${target_type_name}) not forund by beehive.`)
         }
-        
+
         field.resolve = async function (obj, args, context, info) {
             const input = args[inputName]
             if(!input) {
                 throw Error(`Input not found as expected (${inputName}) by beehive.`)
             }
-            
+
             return insertType(schema, table_config, input)
         }
     }
@@ -249,7 +272,7 @@ class BeehiveUnionDirective extends SchemaDirectiveVisitor {
     visitUnion(union) {
         union.resolveType = async function(obj, context, info) {
             return obj.system.type_name
-        } 
+        }
     }
 }
 
@@ -265,4 +288,5 @@ exports.BeehiveDirectives = {
     beehiveUnion: BeehiveUnionDirective,
     beehiveReplace: BeehiveReplaceDirective,
     beehiveUpdate: BeehiveUpdateDirective
+    beehiveDelete: BeehiveDeleteDirective
 };

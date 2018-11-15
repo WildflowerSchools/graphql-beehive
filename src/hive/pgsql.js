@@ -158,4 +158,3 @@ exports.patchType = async function(schema, table_config, pk, input) {
     }
     return exports.putType(schema, table_config, pk, putInput)
 }
-

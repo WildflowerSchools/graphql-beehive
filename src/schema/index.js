@@ -7,7 +7,7 @@ const {BeehiveDirectives, BeehiveTypeDefs} = require("../hive")
 
 
 const logger = { log: e => console.log(e) }
-  
+
 
 exports.schema = makeExecutableSchema({
   typeDefs: [
@@ -64,6 +64,7 @@ exports.schema = makeExecutableSchema({
     type Mutation {
         newThing(thing: ThingInput): Thing! @beehiveCreate(target_type_name: "Thing")
         replaceThing(thing_id: ID!, thing: ThingInput!): Thing! @beehiveReplace(target_type_name: "Thing")
+        deleteThing(thing_id: ID!, thing: ThingInput!): Thing! @beehiveDelete(target_type_name: "Thing")
         newRelatedThing(relatedThing: RelatedThingInput): RelatedThing! @beehiveCreate(target_type_name: "RelatedThing")
         updateRelatedThing(rel_thing_id: ID!, relatedThing: RelatedThingInput!): RelatedThing! @beehiveUpdate(target_type_name: "RelatedThing")
     }
@@ -78,4 +79,3 @@ exports.schema = makeExecutableSchema({
   schemaDirectives: BeehiveDirectives,
   logger: logger,
 })
-
