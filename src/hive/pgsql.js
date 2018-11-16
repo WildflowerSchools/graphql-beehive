@@ -105,7 +105,7 @@ exports.getRelatedItems = async function(schema, table_config, target_field_name
 
 const opMap = {
     EQ: "=",
-    NE: "!=",
+    NE: "<>",
     LIKE: "LIKE",
     RE: "=",
     IN: "IN",
