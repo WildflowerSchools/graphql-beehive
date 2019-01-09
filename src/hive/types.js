@@ -1,5 +1,16 @@
 const {SchemaDirectiveVisitor} = require('graphql-tools')
-const {insertType, listType, getItem, getRelatedItems, putType, patchType} = require("./pgsql")
+const {insertType, listType, getItem, getRelatedItems, putType, patchType, queryType, simpleQueryType} = require("./pgsql")
+const drones = require("./drones")
+
+const EVENTS = process.env.BEEHIVE_ENABLE_EVENTS == "yes"
+
+var graphS3
+
+try {
+    graphS3 = require("@wildflowerschools/graphql-s3-directive")
+} catch(err) {
+    // not a problem, unless you want to use the s3-directive
+}
 
 
 exports.BeehiveTypeDefs = `
@@ -10,19 +21,25 @@ exports.BeehiveTypeDefs = `
 
     directive @beehiveTable (table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
 
-    directive @beehiveCreate(target_type_name: String!) on FIELD_DEFINITION
+    directive @beehiveIndexed(target_type_name: String!) on FIELD_DEFINITION
+
+    directive @beehiveCreate(target_type_name: String!, s3_file_fields: [String!]) on FIELD_DEFINITION
     
-    directive @beehiveUpdate(target_type_name: String!) on FIELD_DEFINITION
+    directive @beehiveUpdate(target_type_name: String!, s3_file_fields: [String!]) on FIELD_DEFINITION
     
-    directive @beehiveReplace(target_type_name: String!) on FIELD_DEFINITION
+    directive @beehiveReplace(target_type_name: String!, s3_file_fields: [String!]) on FIELD_DEFINITION
 
     directive @beehiveList(target_type_name: String!) on FIELD_DEFINITION
-
+    
     directive @beehiveRelation(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
 
     directive @beehiveUnion on UNION
 
     directive @beehiveQuery(
+            target_type_name: String!
+        ) on FIELD_DEFINITION
+
+    directive @beehiveSimpleQuery(
             target_type_name: String!
         ) on FIELD_DEFINITION
 
@@ -52,7 +69,30 @@ exports.BeehiveTypeDefs = `
         system: System!
     }
 
+    enum Operator {
+        OR
+        AND
+        NOT
+        EQ
+        NE
+        LIKE
+        RE
+        IN
+    }
+
+    input QueryExpression {
+        field: String
+        operator: Operator!
+        value: String
+        children: [QueryExpression!]
+    }
+
 `
+
+if (graphS3) {
+    exports.BeehiveTypeDefs += graphS3.typeDefs
+}
+
 function findIdField(obj) {
     for (var field_name of Object.keys(obj._fields)) {
         if (obj._fields[field_name].type == "ID!") {
@@ -61,6 +101,9 @@ function findIdField(obj) {
     }
     return "id"
 }
+
+exports.findIdField = findIdField
+
 
 
 class BeehiveDirective extends SchemaDirectiveVisitor {
@@ -115,7 +158,17 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
             schema_name: this.args.schema_name ? this.args.schema_name : "beehive",
             tables: [],
             lctypemap: [],
+            indexes: [],
         }
+    }
+
+    visitFieldDefinition(field, details) {
+        const target_type_name = this.args.target_type_name
+        var index_config = {
+            target_type_name: target_type_name,
+            field: field,
+        }
+        this.schema._beehive.indexes.push(index_config)
     }
 
 }
@@ -127,7 +180,9 @@ class BeehiveCreateDirective extends SchemaDirectiveVisitor {
         const target_type_name = this.args.target_type_name
         const inputName = target_type_name.charAt(0).toLowerCase() + target_type_name.slice(1)
         const schema = this.schema
+        const s3FileFields = this.args.s3_file_fields
         const table_config = this.schema._beehive.tables[target_type_name]
+
         if(!table_config) {
             throw Error(`Table definition (${target_type_name}) not forund by beehive.`)
         }
@@ -137,8 +192,29 @@ class BeehiveCreateDirective extends SchemaDirectiveVisitor {
             if(!input) {
                 throw Error(`Input not found as expected (${inputName}) by beehive.`)
             }
-            
-            return insertType(schema, table_config, input)
+            if(s3FileFields) {
+                await graphS3.processS3Files(input, s3FileFields, target_type_name, schema)
+            }
+            return new Promise(async function(resolve, reject) {
+                try {
+                    var result = await insertType(schema, table_config, input)
+                    if(EVENTS) {
+                        const evt = new drones.Event("beehive-object-lifecycle", target_type_name, result[table_config.pk_column], "CREATE")
+                        try {
+                            await drones.sendEvent(evt)
+                            resolve(result)
+                        } catch(err) {
+                            console.log(err)
+                            // TODO - do something about lost events
+                            resolve(result)
+                        }
+                    } else {
+                        resolve(result)
+                    }
+                } catch(err) {
+                    reject(err)
+                }
+            })
         }
     }
 
@@ -150,13 +226,39 @@ class BeehiveReplaceDirective extends SchemaDirectiveVisitor {
         const target_type_name = this.args.target_type_name
         const inputName = target_type_name.charAt(0).toLowerCase() + target_type_name.slice(1)
         const schema = this.schema
+        const s3FileFields = this.args.s3_file_fields
 
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
-            return putType(schema, table_config, args[table_config.pk_column], args[inputName])
+            var input = args[inputName]
+            if(!input) {
+                throw Error(`Input not found as expected (${inputName}) by beehive.`)
+            }
+            if(s3FileFields) {
+                await graphS3.processS3Files(input, s3FileFields, target_type_name, schema)
+            }
+            return new Promise(async function(resolve, reject) {
+                try {
+                    var result = await putType(schema, table_config, args[table_config.pk_column], input)
+                    if(EVENTS) {
+                        const evt = new drones.Event("beehive-object-lifecycle", target_type_name, args[table_config.pk_column], "UPDATE")
+                        try {
+                            await drones.sendEvent(evt)
+                            resolve(result)
+                        } catch(err) {
+                            console.log(err)
+                            // TODO - do something about lost events
+                            resolve(result)
+                        }
+                    } else {
+                        resolve(result)
+                    }
+                } catch(err) {
+                    reject(err)
+                }
+            })
         }
     }
-
 }
 
 class BeehiveUpdateDirective extends SchemaDirectiveVisitor {
@@ -165,10 +267,37 @@ class BeehiveUpdateDirective extends SchemaDirectiveVisitor {
         const target_type_name = this.args.target_type_name
         const inputName = target_type_name.charAt(0).toLowerCase() + target_type_name.slice(1)
         const schema = this.schema
+        const s3FileFields = this.args.s3_file_fields
 
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
-            return patchType(schema, table_config, args[table_config.pk_column], args[inputName])
+            var input = args[inputName]
+            if(!input) {
+                throw Error(`Input not found as expected (${inputName}) by beehive.`)
+            }
+            if(s3FileFields) {
+                await graphS3.processS3Files(input, s3FileFields, target_type_name, schema)
+            }
+            return new Promise(async function(resolve, reject) {
+                try {
+                    var result = await patchType(schema, table_config, args[table_config.pk_column], input)
+                    if(EVENTS) {
+                        const evt = new drones.Event("beehive-object-lifecycle", target_type_name, args[table_config.pk_column], "UPDATE")
+                        try {
+                            await drones.sendEvent(evt)
+                            resolve(result)
+                        } catch(err) {
+                            console.log(err)
+                            // TODO - do something about lost events
+                            resolve(result)
+                        }
+                    } else {
+                        resolve(result)
+                    }
+                } catch(err) {
+                    reject(err)
+                }
+            })
         }
     }
 
@@ -196,8 +325,31 @@ class BeehiveQueryDirective extends SchemaDirectiveVisitor {
         const schema = this.schema
 
         field.resolve = async function (obj, args, context, info) {
-            // TODO - need to construct a query for this somehow
-            var rows = []
+            const table_config = schema._beehive.tables[target_type_name]
+            var rows = queryType(schema, table_config, args.query, args.page)
+            return {data: rows}
+        }
+    }
+
+}
+
+class BeehiveSimpleQueryDirective extends SchemaDirectiveVisitor {
+
+    visitFieldDefinition(field, details) {
+        const target_type_name = this.args.target_type_name
+        const schema = this.schema
+
+        field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            var query = {}
+
+            for (var field_name of Object.keys(args)) {
+                if(field_name != "page") {
+                    query[field_name] = args[field_name]
+                }
+            }
+
+            var rows = simpleQueryType(schema, table_config, query, args.page)
             return {data: rows}
         }
     }
@@ -248,6 +400,7 @@ class BeehiveRelationDirective extends SchemaDirectiveVisitor {
 class BeehiveUnionDirective extends SchemaDirectiveVisitor {
     visitUnion(union) {
         union.resolveType = async function(obj, context, info) {
+            // This doesn't actually work.
             return obj.system.type_name
         } 
     }
@@ -260,9 +413,15 @@ exports.BeehiveDirectives = {
     beehiveCreate: BeehiveCreateDirective,
     beehiveList: BeehiveListDirective,
     beehiveQuery: BeehiveQueryDirective,
+    beehiveSimpleQuery: BeehiveSimpleQueryDirective,
     beehiveGet: BeehiveGetDirective,
     beehiveRelation: BeehiveRelationDirective,
     beehiveUnion: BeehiveUnionDirective,
     beehiveReplace: BeehiveReplaceDirective,
-    beehiveUpdate: BeehiveUpdateDirective
+    beehiveUpdate: BeehiveUpdateDirective,
+    beehiveIndexed: BeehiveDirective,
 };
+
+if (graphS3) {
+    exports.BeehiveDirectives = Object.assign(exports.BeehiveDirectives, graphS3.directives)
+}

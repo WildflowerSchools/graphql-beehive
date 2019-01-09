@@ -4,16 +4,16 @@ const expect = require('chai').expect
 const { Pool } = require('pg')
 const pool = new Pool()
 const {server} = require("./testsupport")
+const ServerMock = require("mock-http-server");
 
 
-const uri = "http://localhost:4000/graphql"
+const uri = "http://localhost:4423/graphql"
 
 process.env.PGPASSWORD = "iamaninsecurepassword"
 process.env.PGUSER = "beehive_user"
 process.env.PGDATABASE = "beehive-tests-integrated"
 process.env.PGHOST = "localhost"
 process.env.PGPORT = "5432"
-
 
 var dbContainer
 
@@ -56,6 +56,7 @@ before(async function() {
         for (let i=0; i < 4; i++) {
             var ok = await status()
             if (ok) {
+                await sleep(10000)
                 return child
             }
             await sleep(3000)
@@ -80,15 +81,34 @@ describe('Beehive test suite', function(){
 
 
     var expressApp
+    var mockserver = new ServerMock({ host: "localhost", port: 1111 })
 
     before(async function() {
         // setup an apollo-server-express app and run it
-        const { schema } = require("./schema");
+        const { schema } = require("../src/schema");
         expressApp = await server(schema)
     })
 
     after(async function() {
         expressApp.close()
+    })
+
+    beforeEach(async function() {
+        mockserver.start(function(){})
+        mockserver.on({
+            method: 'POST',
+            path: '/streams/fakenews',
+            reply: {
+                status:  200,
+                headers: { "content-type": "application/json" },
+                body:    JSON.stringify({ status: "ok" })
+            }
+        });
+    })
+
+
+    afterEach(async function() {
+        mockserver.stop(function(){})
     })
 
     describe('things', function() {
@@ -105,11 +125,12 @@ describe('Beehive test suite', function(){
                     }
                 `
             var thing = await request(uri, query)
-            console.log(thing)
+            // console.log(thing)
             expect(thing).to.not.equal(null)
             expect(thing.newThing.thing_id).to.not.equal(null)
             expect(thing.newThing.name).to.equal("thing")
             expect(thing.newThing.system.created).to.not.equal(null)
+            expect(mockserver.requests().length).to.not.equal(0)
         })
 
         it('replaces a thing', async function() {
@@ -184,7 +205,7 @@ describe('Beehive test suite', function(){
                     }
                 `
             var things = await request(uri, query)
-            console.log(things)
+            // console.log(things)
             expect(things).to.not.equal(null)
             expect(things.things.data).to.not.equal(null)
             expect(things.things.data[0].thing_id).to.not.equal(null)
@@ -213,9 +234,9 @@ describe('Beehive test suite', function(){
                         }
                     }
                 `
-            console.log(query)
+            // console.log(query)
             var rel_thing = await request(uri, query)
-            console.log(rel_thing)
+            // console.log(rel_thing)
             expect(rel_thing).to.not.equal(null)
             expect(rel_thing.newRelatedThing.rel_thing_id).to.not.equal(null)
             expect(rel_thing.newRelatedThing.name).to.equal("thing")
@@ -240,13 +261,88 @@ describe('Beehive test suite', function(){
                         }
                     }
                 `
-            console.log(query)
+            // console.log(query)
             var getThing = await request(uri, query)
-            console.log(getThing)
+            // console.log(getThing)
             expect(getThing.getThing).to.not.equal(null)
             expect(getThing.getThing.thing_id).to.equal(thing.newThing.thing_id)
             expect(getThing.getThing.name).to.equal("monster-rock")
         })
+
+
+        it('findThings', async function() {
+            var query = `
+                    mutation {
+                        first: newThing(thing: {name: "granola-bar"}) {
+                            thing_id
+                        }
+
+                        second: newThing(thing: {name: "granola-bars"}) {
+                            thing_id
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            query = `
+                    query {
+                        findThings(query: {field: "name", operator: EQ, value: "granola-bars"}) {
+                            data {
+                                ... on Thing {
+                                    thing_id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            expect(things.findThings).to.not.equal(null)
+            expect(things.findThings.data.length).to.equal(1)
+            expect(things.findThings.data[0].thing_id).to.not.equal(null)
+            expect(things.findThings.data[0].name).to.equal("granola-bars")
+        })
+
+
+        it('matchThings', async function() {
+            // matchThings(
+            //     name: String,
+            //     material: String,
+            //     type: TypeOfThing,
+            //     page: PaginationInput): ThingList @beehiveSimpleQuery(target_type_name: "Thing")
+            var query = `
+                    mutation {
+                        first: newThing(thing: {name: "brownie-bar"}) {
+                            thing_id
+                        }
+
+                        second: newThing(thing: {name: "brownie-bars"}) {
+                            thing_id
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            query = `
+                    query {
+                        matchThings(name: "brownie-bar") {
+                            data {
+                                ... on Thing {
+                                    thing_id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            expect(things.matchThings).to.not.equal(null)
+            expect(things.matchThings.data.length).to.equal(1)
+            expect(things.matchThings.data[0].thing_id).to.not.equal(null)
+            expect(things.matchThings.data[0].name).to.equal("brownie-bar")
+        })
+
+
+
+
 
         it('list relations', async function() {
             var query = `
@@ -267,9 +363,9 @@ describe('Beehive test suite', function(){
                         }
                     }
                 `
-            console.log(query)
+            // console.log(query)
             var related = await request(uri, query)
-            console.log(related)
+            // console.log(related)
             expect(related).to.not.equal(null)
             expect(related.first.rel_thing_id).to.not.equal(null)
             expect(related.second.rel_thing_id).to.not.equal(null)
@@ -283,9 +379,9 @@ describe('Beehive test suite', function(){
                         }
                     }
                 `
-            console.log(query)
+            // console.log(query)
             var getThing = await request(uri, query)
-            console.log(getThing)
+            // console.log(getThing)
             expect(getThing.updatedThing.related).to.not.equal(null)
             expect(getThing.updatedThing.related.length).to.equal(2)
         })
@@ -304,7 +400,7 @@ describe('Beehive test suite', function(){
     describe('exceptions', function() {
         it('should fail', async function() {
 
-            expect(function() { require("./schema/no_schema")}).to.throw(TypeError)
+            expect(function() { require("../src/schema/no_schema")}).to.throw(TypeError)
         })
 
 

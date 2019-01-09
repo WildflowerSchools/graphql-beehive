@@ -34,6 +34,12 @@ exports.ensureDatabase = async function(schema) {
             console.log(`jsonb index '${table.table_name}' should exist now`)
         }
 
+        for(var index of schema._beehive.indexes) {
+            const table = schema._beehive.tables[index.target_type_name]
+            await client.query(`CREATE INDEX IF NOT EXISTS ${schema._beehive.schema_name}_${table.table_name}_btree_${index.field.name} ON ${schema._beehive.schema_name}.${table.table_name} USING BTREE ((data->'index.field.name'))`)
+            console.log(`btree index '${table.table_name}' for '${index.field.name}' should exist now`)
+        }
+
         await client.query('COMMIT')
 
     } catch (e) {
@@ -86,7 +92,7 @@ exports.getItem = async function(schema, table_config, pk) {
 }
 
 
-exports.getRelatedItems = async function(schema, table_config, target_field_name, value) {
+exports.getRelatedItems = async function(schema, table_config, target_field_name, value, pageInfo) {
     var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}'`
     var things = await pool.query(query)
     var rows = []
@@ -97,8 +103,59 @@ exports.getRelatedItems = async function(schema, table_config, target_field_name
 }
 
 
-exports.queryType = async function(schema, table_config, query) {
+const opMap = {
+    EQ: "=",
+    NE: "<>",
+    LIKE: "LIKE",
+    RE: "=",
+    IN: "IN",
+}
 
+
+function renderQuery(query) {
+    if(["EQ", "NE", "LIKE", "RE", "IN"].includes(query.operator)) {
+        // simple query with no child-elements
+        // TODO - add support for numeric values
+        return `data->>'${query.field}' ${opMap[query.operator]} '${query.value}'`
+    } else {
+        // a boolean expression with children
+        var childrenSQL = []
+        for(var child of query.children) {
+            childrenSQL.push(renderQuery(child))
+        }
+        const joinBit = ` ${query.operator} `
+        return `(${childrenSQL.join(joinBit)})`
+    }
+}
+
+exports.queryType = async function(schema, table_config, query, pageInfo) {
+    console.log(query)
+    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${renderQuery(query)}`
+    console.log(sql)
+    var explained = await pool.query(`EXPLAIN ${sql}`)
+    console.log(explained)
+    var things = await pool.query(sql)
+    var rows = []
+    for(var row of things.rows) {
+        rows.push(applySystem(row))
+    }
+    console.log(rows)
+    return rows
+}
+
+exports.simpleQueryType = async function(schema, table_config, query, pageInfo) {
+    console.log(query)
+    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '${JSON.stringify(query)}'`
+    console.log(sql)
+    var explained = await pool.query(`EXPLAIN ${sql}`)
+    console.log(explained)
+    var things = await pool.query(sql)
+    var rows = []
+    for(var row of things.rows) {
+        rows.push(applySystem(row))
+    }
+    console.log(rows)
+    return rows
 }
 
 

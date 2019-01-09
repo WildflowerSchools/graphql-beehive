@@ -1,8 +1,8 @@
 const express = require("express");
 const { ApolloServer } = require('apollo-server-express');
-const { schema } = require("./schema");
+const { schema } = require("../src/schema");
 const voyager = require('graphql-voyager/middleware');
-const { ensureDatabase } = require('./hive');
+const { ensureDatabase } = require('../src/hive');
 
 
 (async () => {
