@@ -15,6 +15,7 @@
     "license": "MIT",
     "dependencies": {
         "@wildflowerschools/graphql-s3-directive": "^0.2.0",
+        "axios": "^0.18.0",
         "graphql": "^14.0.2",
         "graphql-custom-types": "^1.4.0",
         "graphql-directive": "^0.2.1",
@@ -28,7 +29,6 @@
         "apollo": "^1.9.2",
         "apollo-server": "^2.1.0",
         "apollo-server-express": "^2.1.0",
-        "axios": "^0.18.0",
         "body-parser": "^1.18.3",
         "chai": "^4.2.0",
         "docker-run": "^3.1.0",
