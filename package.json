@@ -4,7 +4,7 @@
     "description": "A set of tools for working with PostgreSQL and GraphQL",
     "main": "src/index.js",
     "scripts": {
-        "test": "mocha src/**.spec.js --timeout 30000",
+        "test": "BEEHIVE_ENABLE_EVENTS=yes PROTON_PACK_STREAM_URI=http://localhost:1111/streams/fakenews mocha --recursive --timeout 30000",
         "coverage": "node_modules/.bin/nyc npm test",
         "start": "node_modules/.bin/nodemon src/test-server.js"
     },
@@ -31,11 +31,11 @@
         "axios": "^0.18.0",
         "body-parser": "^1.18.3",
         "chai": "^4.2.0",
-        "debug": "^4.1.0",
         "docker-run": "^3.1.0",
         "express": "^4.16.4",
         "graphql-request": "^1.8.2",
         "mocha": "^5.2.0",
+        "mock-http-server": "^1.2.0",
         "nodemon": "^1.18.8",
         "npm": "^6.4.1",
         "nyc": "^13.1.0",

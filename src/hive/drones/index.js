@@ -11,16 +11,6 @@ class Event {
         this.ts = ts ? ts : new Date().toISOString()
     }
 
-    encode() {
-        return [
-            "topic", this.topic,
-            "type", this.type,
-            "id", this.id,
-            "activity", this.activity,
-            "ts", this.ts,
-        ]
-    }
-
     json() {
         return {
             "topic": this.topic,

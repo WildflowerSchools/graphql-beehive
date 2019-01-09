@@ -102,6 +102,9 @@ function findIdField(obj) {
     return "id"
 }
 
+exports.findIdField = findIdField
+
+
 
 class BeehiveDirective extends SchemaDirectiveVisitor {
 

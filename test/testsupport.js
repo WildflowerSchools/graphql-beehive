@@ -1,7 +1,7 @@
 const { Pool } = require('pg')
 const pool = new Pool()
 
-const { BeehiveResolvers } = require("./hive")
+const { BeehiveResolvers } = require("../src/hive")
 
 
 exports.cleanPostgres = async function() {
@@ -39,7 +39,7 @@ exports.server = async function(schema) {
     const express = require("express");
     const { ApolloServer } = require('apollo-server-express');
     const voyager = require('graphql-voyager/middleware');
-    const { ensureDatabase } = require('./hive');
+    const { ensureDatabase } = require('../src/hive');
 
 
     await (async () => {
@@ -70,8 +70,8 @@ exports.server = async function(schema) {
 
     server.applyMiddleware({ app });
 
-    return app.listen({ port: 4000 }, () =>
-      console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`)
+    return app.listen({ port: 4423 }, () =>
+      console.log(`🚀 Server ready at http://localhost:4423${server.graphqlPath}`)
     )
 
 }
