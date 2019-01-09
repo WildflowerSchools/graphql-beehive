@@ -14,6 +14,7 @@
     "author": "optimuspaul",
     "license": "MIT",
     "dependencies": {
+        "@wildflowerschools/graphql-s3-directive": "^0.2.0",
         "graphql": "^14.0.2",
         "graphql-custom-types": "^1.4.0",
         "graphql-directive": "^0.2.1",
