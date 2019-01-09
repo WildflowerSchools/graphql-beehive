@@ -1,6 +1,6 @@
 {
     "name": "@wildflowerschools/graphql-beehive",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "description": "A set of tools for working with PostgreSQL and GraphQL",
     "main": "src/index.js",
     "scripts": {
@@ -20,7 +20,8 @@
         "graphql-iso-date": "^3.6.1",
         "graphql-tools": "^4.0.1",
         "graphql-voyager": "^1.0.0-rc.26",
-        "pg": "^7.5.0"
+        "pg": "^7.5.0",
+        "redis": "^2.8.0"
     },
     "devDependencies": {
         "apollo": "^1.9.2",
@@ -34,7 +35,7 @@
         "express": "^4.16.4",
         "graphql-request": "^1.8.2",
         "mocha": "^5.2.0",
-        "nodemon": "^1.18.4",
+        "nodemon": "^1.18.8",
         "npm": "^6.4.1",
         "nyc": "^13.1.0",
         "request": "^2.88.0",
