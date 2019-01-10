@@ -379,16 +379,27 @@ class BeehiveRelationDirective extends SchemaDirectiveVisitor {
         const field_name = field.name
         const target_field_name = this.args.target_field_name
 
+        function isListType(type) {
+            if(type.kind == "ListType") { return true }
+            if(type.kind == "NonNullType") {
+                if(type.type && type.type.kind == "ListType") {
+                    return true
+                }
+            }
+            return false
+        }
 
-        const isListType = Reflect.has(field.type, "ofType")
+        const isListField = isListType(field.astNode.type)
 
         field.resolve = async function (obj, args, context, info) {
-            console.log(`loading a relation ${target_type_name}`)
+            console.log(`loading a relation ${target_type_name}-> ${this_object_type}? ${isListField}`)
             const table_config = schema._beehive.tables[target_type_name]
-            if(isListType) {
+            if(isListField) {
                 const local_table_config = schema._beehive.tables[this_object_type]
+                console.log(`loading a relation ${target_type_name}->[${this_object_type}] ${local_table_config}`)
                 return getRelatedItems(schema, table_config, target_field_name, obj[local_table_config.pk_column])
             } else {
+                console.log(`loading a relation ${target_type_name}->${this_object_type} ${obj[field_name]}`)
                 return getItem(schema, table_config, obj[field_name])
             }
         }
