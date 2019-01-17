@@ -59,6 +59,7 @@ exports.ensureDatabase = async function(schema) {
 
 
 exports.insertType = async function(schema, table_config, input) {
+    const client = await pool.connect()
     const pk_column = table_config.pk_column
     const target_type_name = table_config.type.name
     var pk = input[pk_column]
@@ -68,7 +69,38 @@ exports.insertType = async function(schema, table_config, input) {
         pk = uuidv4()
     }
 
-    return exports.putType(schema, table_config, pk, input)
+    try {
+        const target_type_name = table_config.type.name
+        var forDB = {}
+
+        forDB[pk_column] = pk
+
+        for (var field_name of Object.keys(table_config.type._fields)) {
+            if(field_name in input) {
+                forDB[field_name] = input[field_name]
+            }
+        }
+
+        await client.query('BEGIN')
+        await client.query(`INSERT INTO ${schema._beehive.schema_name}.${table_config.table_name} (${pk_column}, data, type_name)
+                                VALUES ($1, $2, $3)
+                                ON CONFLICT (${pk_column})
+                                    DO UPDATE
+                                        SET data = $2`, [
+                           pk,
+                           forDB,
+                           target_type_name,
+                           ])
+        await client.query('COMMIT')
+    } catch (e) {
+        console.log("something failed")
+        await client.query('ROLLBACK')
+        throw e
+    } finally {
+        client.release()
+    }
+    var things = await pool.query(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${pk_column} = $1`, [pk])
+    return applySystem(things.rows[0])
 }
 
 
@@ -129,32 +161,28 @@ function renderQuery(query) {
 }
 
 exports.queryType = async function(schema, table_config, query, pageInfo) {
-    console.log(query)
     var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${renderQuery(query)}`
-    console.log(sql)
     var explained = await pool.query(`EXPLAIN ${sql}`)
-    console.log(explained)
     var things = await pool.query(sql)
     var rows = []
     for(var row of things.rows) {
         rows.push(applySystem(row))
     }
-    console.log(rows)
     return rows
 }
 
 exports.simpleQueryType = async function(schema, table_config, query, pageInfo) {
-    console.log(query)
+    // console.log(query)
     var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '${JSON.stringify(query)}'`
-    console.log(sql)
+    // console.log(sql)
     var explained = await pool.query(`EXPLAIN ${sql}`)
-    console.log(explained)
+    // console.log(explained)
     var things = await pool.query(sql)
     var rows = []
     for(var row of things.rows) {
         rows.push(applySystem(row))
     }
-    console.log(rows)
+    // console.log(rows)
     return rows
 }
 
@@ -175,11 +203,10 @@ exports.putType = async function(schema, table_config, pk, input) {
         }
 
         await client.query('BEGIN')
-        await client.query(`INSERT INTO ${schema._beehive.schema_name}.${table_config.table_name} (${pk_column}, data, type_name)
-                                VALUES ($1, $2, $3)
-                                ON CONFLICT (${pk_column})
-                                    DO UPDATE
-                                        SET data = $2`, [
+        await client.query(`UPDATE ${schema._beehive.schema_name}.${table_config.table_name} 
+                                SET data = $2,
+                                type_name = $3,
+                                last_modified = CURRENT_TIMESTAMP WHERE ${pk_column} = $1`, [
                            pk,
                            forDB,
                            target_type_name,
@@ -199,20 +226,12 @@ exports.putType = async function(schema, table_config, pk, input) {
 
 exports.patchType = async function(schema, table_config, pk, input) {
     var current = await exports.getItem(schema, table_config, pk)
-
     if(!current) {
         throw Error(`Object of type ${table_config.type.name} with primary key ${pk} not found`)
     }
-
-    var putInput = {}
-
-    for (var field_name of Object.keys(current)) {
-        if(field_name in input) {
-            putInput[field_name] = input[field_name]
-        } else {
-            putInput[field_name] = current[field_name]
-        }
+    for (var field_name of Object.keys(input)) {
+        current[field_name] = input[field_name]
     }
-    return exports.putType(schema, table_config, pk, putInput)
+    return exports.putType(schema, table_config, pk, current)
 }
 
