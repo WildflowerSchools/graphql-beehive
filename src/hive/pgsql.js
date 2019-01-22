@@ -23,6 +23,9 @@ exports.ensureDatabase = async function(schema) {
         await client.query(`CREATE SCHEMA IF NOT EXISTS ${schema._beehive.schema_name}`)
         console.log(`schema '${schema._beehive.schema_name}' should exist now`)
 
+        console.log('ensuring the beehive_system_global_lookups table exists')
+        await client.query(`CREATE TABLE IF NOT EXISTS ${schema._beehive.schema_name}.beehive_system_global_lookups (obj_uid UUID PRIMARY KEY, type_name varchar(128))`)
+
         console.log(schema._beehive.tables)
 
         for (var type of Object.keys(schema._beehive.tables)) {
@@ -54,6 +57,38 @@ exports.ensureDatabase = async function(schema) {
     for (var table of tables.rows) {
         console.log(table)
     }
+}
+
+
+async function setGlobalLookup(schema, table_config, uid) {
+    const client = await pool.connect()
+    const target_type_name = table_config.type.name
+    try {
+        await client.query('BEGIN')
+        await client.query(`INSERT INTO ${schema._beehive.schema_name}.beehive_system_global_lookups (obj_uid, type_name)
+                                VALUES ($1, $2)
+                                ON CONFLICT (obj_uid)
+                                    DO NOTHING`, [
+                           uid,
+                           target_type_name,
+                           ])
+        await client.query('COMMIT')
+    } catch (e) {
+        console.log("something failed")
+        await client.query('ROLLBACK')
+        throw e
+    } finally {
+        client.release()
+    }
+}
+
+exports.inferType = async function(schema, uid) {
+    var things = await pool.query(`SELECT type_name FROM ${schema._beehive.schema_name}.beehive_system_global_lookups WHERE obj_uid = $1`, [uid])
+
+    if(things.rows.length) {
+        return things.rows[0].type_name
+    }
+    return null
 }
 
 
@@ -92,6 +127,7 @@ exports.insertType = async function(schema, table_config, input) {
                            target_type_name,
                            ])
         await client.query('COMMIT')
+        await setGlobalLookup(schema, table_config, pk)
     } catch (e) {
         console.log("something failed")
         await client.query('ROLLBACK')
@@ -212,6 +248,7 @@ exports.putType = async function(schema, table_config, pk, input) {
                            target_type_name,
                            ])
         await client.query('COMMIT')
+        await setGlobalLookup(schema, table_config, pk)
     } catch (e) {
         console.log("something failed")
         await client.query('ROLLBACK')
