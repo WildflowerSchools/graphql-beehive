@@ -19,7 +19,7 @@ exports.BeehiveTypeDefs = `
 
     directive @beehive (schema_name: String) on SCHEMA
 
-    directive @beehiveTable (table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
+    directive @beehiveTable(table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
 
     directive @beehiveIndexed(target_type_name: String!) on FIELD_DEFINITION
 
@@ -32,6 +32,8 @@ exports.BeehiveTypeDefs = `
     directive @beehiveList(target_type_name: String!) on FIELD_DEFINITION
     
     directive @beehiveRelation(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
+
+    directive @beehiveAssignmentType(table_name: String, pk_column: String, assigned_field: String!, assignee_field: String!, start_field_name: String, end_field_name: String, exclusive: Boolean) on OBJECT
 
     directive @beehiveUnion on UNION
 
@@ -123,6 +125,7 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
 
     visitObject(type) {
         var table_config = {
+            table_type: "simple",
             type: type,
             table_name: type.name,
             pk_column: this.args.pk_column,
@@ -448,6 +451,47 @@ class BeehiveUnionDirective extends SchemaDirectiveVisitor {
 }
 
 
+class BeehiveAssignmentTypeDirective extends SchemaDirectiveVisitor {
+
+    visitObject(type) {
+
+        var table_config = {
+            table_type: "assignment",
+            type: type,
+            table_name: type.name,
+            pk_column: this.args.pk_column,
+            assigned_field: this.args.assigned_field,
+            assignee_field: this.args.assignee_field,
+            exclusive: this.args.exclusive,
+            start_field_name: "start",
+            end_field_name: "end",
+        }
+
+        if(!this.args.pk_column) {
+            table_config["pk_column"] = findIdField(type)
+        }
+
+        if(this.args.table_name) {
+            table_config["table_name"] = this.args.table_name
+        }
+
+        if(this.args.start_field_name) {
+            table_config["start_field_name"] = this.args.start_field_name
+        }
+
+        if(this.args.end_field_name) {
+            table_config["end_field_name"] = this.args.end_field_name
+        }
+
+        type._fields.system = this.schema._typeMap._beehive_helper_._fields.system
+
+        this.schema._beehive.tables[type.name] = table_config
+        this.schema._beehive.lctypemap[type.name.toLowerCase()] = type.name
+    }
+
+}
+
+
 exports.BeehiveDirectives = {
     beehive: BeehiveDirective,
     beehiveTable: BeehiveDirective,
@@ -462,6 +506,7 @@ exports.BeehiveDirectives = {
     beehiveReplace: BeehiveReplaceDirective,
     beehiveUpdate: BeehiveUpdateDirective,
     beehiveIndexed: BeehiveDirective,
+    beehiveAssignmentType: BeehiveAssignmentTypeDirective,
 };
 
 if (graphS3) {
