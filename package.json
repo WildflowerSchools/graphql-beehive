@@ -1,8 +1,9 @@
 {
     "name": "@wildflowerschools/graphql-beehive",
-    "version": "0.7.5",
+    "version": "0.7.6",
     "description": "A set of tools for working with PostgreSQL and GraphQL",
     "main": "src/index.js",
+    "repository": "https://github.com/WildflowerSchools/graphql-beehive",
     "scripts": {
         "test": "BEEHIVE_ENABLE_EVENTS=yes PROTON_PACK_STREAM_URI=http://localhost:1111/streams/fakenews mocha --recursive --timeout 30000",
         "coverage": "node_modules/.bin/nyc npm test",
@@ -31,7 +32,12 @@
         "apollo-server-express": "^2.1.0",
         "body-parser": "^1.18.3",
         "chai": "^4.2.0",
-        "docker-run": "^3.1.0",
+        "docker-run": {
+            "version": "^3.1.0",
+            "dependencies": {
+                "debug": "^4.1.1"
+            }
+        },
         "express": "^4.16.4",
         "graphql-request": "^1.8.2",
         "mocha": "^5.2.0",
