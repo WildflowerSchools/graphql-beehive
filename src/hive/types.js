@@ -1,5 +1,5 @@
 const {SchemaDirectiveVisitor} = require('graphql-tools')
-const {insertType, listType, getItem, getRelatedItems, putType, patchType, queryType, simpleQueryType} = require("./pgsql")
+const {insertType, listType, getItem, getRelatedItems, putType, patchType, queryType, simpleQueryType, inferType} = require("./pgsql")
 const drones = require("./drones")
 
 const EVENTS = process.env.BEEHIVE_ENABLE_EVENTS == "yes"
@@ -19,7 +19,7 @@ exports.BeehiveTypeDefs = `
 
     directive @beehive (schema_name: String) on SCHEMA
 
-    directive @beehiveTable (table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
+    directive @beehiveTable(table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
 
     directive @beehiveIndexed(target_type_name: String!) on FIELD_DEFINITION
 
@@ -33,7 +33,11 @@ exports.BeehiveTypeDefs = `
     
     directive @beehiveRelation(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
 
+    directive @beehiveAssignmentType(table_name: String, pk_column: String, assigned_field: String!, assignee_field: String!, start_field_name: String, end_field_name: String, exclusive: Boolean) on OBJECT
+
     directive @beehiveUnion on UNION
+
+    directive @beehiveUnionResolver(target_types: [String!], target_field_names: [String]) on FIELD_DEFINITION
 
     directive @beehiveQuery(
             target_type_name: String!
@@ -102,6 +106,17 @@ function findIdField(obj) {
     return "id"
 }
 
+function isListType(type) {
+    if(type.kind == "ListType") { return true }
+    if(type.kind == "NonNullType") {
+        if(type.type && type.type.kind == "ListType") {
+            return true
+        }
+    }
+    return false
+}
+
+
 exports.findIdField = findIdField
 
 
@@ -110,6 +125,7 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
 
     visitObject(type) {
         var table_config = {
+            table_type: "simple",
             type: type,
             table_name: type.name,
             pk_column: this.args.pk_column,
@@ -190,7 +206,7 @@ class BeehiveCreateDirective extends SchemaDirectiveVisitor {
         field.resolve = async function (obj, args, context, info) {
             const input = args[inputName]
             if(!input) {
-                throw Error(`Input not found as expected (${inputName}) by beehive.`)
+                throw Error(`Input not found as expected (${inputName}) [${JSON.stringify(args)}] by beehive.`)
             }
             if(s3FileFields) {
                 await graphS3.processS3Files(input, s3FileFields, target_type_name, schema)
@@ -379,16 +395,6 @@ class BeehiveRelationDirective extends SchemaDirectiveVisitor {
         const field_name = field.name
         const target_field_name = this.args.target_field_name
 
-        function isListType(type) {
-            if(type.kind == "ListType") { return true }
-            if(type.kind == "NonNullType") {
-                if(type.type && type.type.kind == "ListType") {
-                    return true
-                }
-            }
-            return false
-        }
-
         const isListField = isListType(field.astNode.type)
 
         field.resolve = async function (obj, args, context, info) {
@@ -415,6 +421,74 @@ class BeehiveUnionDirective extends SchemaDirectiveVisitor {
             return obj.system.type_name
         } 
     }
+
+    visitFieldDefinition(field, details) {
+        const target_types = this.args.target_types
+        const target_field_names = this.args.target_field_names
+        const this_object_type = details.objectType
+
+        const schema = this.schema
+        const field_name = field.name
+
+        const isListField = isListType(field.astNode.type)
+
+        field.resolve = async function (obj, args, context, info) {
+            console.log(`looking for a relation that is a UNION ${field_name} could be ${target_types}`)
+            if(isListField) {
+                // TODO - need to parallelize the loading of related items
+                //   I fear that no matter how this is implemented it will not be efficient by any means
+                return []
+            } else {
+                const infered_type = await inferType(schema, obj[field_name])
+                if(infered_type) {
+                    var table_config = schema._beehive.tables[infered_type]
+                    return getItem(schema, table_config, obj[field_name])
+                }
+                return null
+            }
+        }
+    }
+}
+
+
+class BeehiveAssignmentTypeDirective extends SchemaDirectiveVisitor {
+
+    visitObject(type) {
+
+        var table_config = {
+            table_type: "assignment",
+            type: type,
+            table_name: type.name,
+            pk_column: this.args.pk_column,
+            assigned_field: this.args.assigned_field,
+            assignee_field: this.args.assignee_field,
+            exclusive: this.args.exclusive,
+            start_field_name: "start",
+            end_field_name: "end",
+        }
+
+        if(!this.args.pk_column) {
+            table_config["pk_column"] = findIdField(type)
+        }
+
+        if(this.args.table_name) {
+            table_config["table_name"] = this.args.table_name
+        }
+
+        if(this.args.start_field_name) {
+            table_config["start_field_name"] = this.args.start_field_name
+        }
+
+        if(this.args.end_field_name) {
+            table_config["end_field_name"] = this.args.end_field_name
+        }
+
+        type._fields.system = this.schema._typeMap._beehive_helper_._fields.system
+
+        this.schema._beehive.tables[type.name] = table_config
+        this.schema._beehive.lctypemap[type.name.toLowerCase()] = type.name
+    }
+
 }
 
 
@@ -428,9 +502,11 @@ exports.BeehiveDirectives = {
     beehiveGet: BeehiveGetDirective,
     beehiveRelation: BeehiveRelationDirective,
     beehiveUnion: BeehiveUnionDirective,
+    beehiveUnionResolver: BeehiveUnionDirective,
     beehiveReplace: BeehiveReplaceDirective,
     beehiveUpdate: BeehiveUpdateDirective,
     beehiveIndexed: BeehiveDirective,
+    beehiveAssignmentType: BeehiveAssignmentTypeDirective,
 };
 
 if (graphS3) {

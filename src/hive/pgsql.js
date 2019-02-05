@@ -23,6 +23,9 @@ exports.ensureDatabase = async function(schema) {
         await client.query(`CREATE SCHEMA IF NOT EXISTS ${schema._beehive.schema_name}`)
         console.log(`schema '${schema._beehive.schema_name}' should exist now`)
 
+        console.log('ensuring the beehive_system_global_lookups table exists')
+        await client.query(`CREATE TABLE IF NOT EXISTS ${schema._beehive.schema_name}.beehive_system_global_lookups (obj_uid UUID PRIMARY KEY, type_name varchar(128))`)
+
         console.log(schema._beehive.tables)
 
         for (var type of Object.keys(schema._beehive.tables)) {
@@ -57,6 +60,38 @@ exports.ensureDatabase = async function(schema) {
 }
 
 
+async function setGlobalLookup(schema, table_config, uid) {
+    const client = await pool.connect()
+    const target_type_name = table_config.type.name
+    try {
+        await client.query('BEGIN')
+        await client.query(`INSERT INTO ${schema._beehive.schema_name}.beehive_system_global_lookups (obj_uid, type_name)
+                                VALUES ($1, $2)
+                                ON CONFLICT (obj_uid)
+                                    DO NOTHING`, [
+                           uid,
+                           target_type_name,
+                           ])
+        await client.query('COMMIT')
+    } catch (e) {
+        console.log("something failed")
+        await client.query('ROLLBACK')
+        throw e
+    } finally {
+        client.release()
+    }
+}
+
+exports.inferType = async function(schema, uid) {
+    var things = await pool.query(`SELECT type_name FROM ${schema._beehive.schema_name}.beehive_system_global_lookups WHERE obj_uid = $1`, [uid])
+
+    if(things.rows.length) {
+        return things.rows[0].type_name
+    }
+    return null
+}
+
+
 
 exports.insertType = async function(schema, table_config, input) {
     const client = await pool.connect()
@@ -82,6 +117,32 @@ exports.insertType = async function(schema, table_config, input) {
         }
 
         await client.query('BEGIN')
+
+        if(table_config.table_type == "assignment" && table_config.exclusive) {
+            let where = renderQuery({
+                    operator: "AND",
+                    children: [
+                        {
+                            field: table_config.assigned_field,
+                            operator: "EQ",
+                            value: forDB[table_config.assigned_field],
+                        },
+                        {
+                            operator: "OR",
+                            children: [
+                                {field: "end", operator: "ISNULL"},
+                                {field: "end", operator: "GT", value: forDB.start},
+                                {field: "start", operator: "GT", value: forDB.start},
+                            ],
+                        },
+                    ]
+                })
+            // console.log(where)
+            await client.query(`UPDATE ${schema._beehive.schema_name}.${table_config.table_name} 
+                                    SET data = data || '{"${table_config.end_field_name}": "${forDB.start}"}',
+                                    last_modified = CURRENT_TIMESTAMP WHERE ${where}`)
+        }
+
         await client.query(`INSERT INTO ${schema._beehive.schema_name}.${table_config.table_name} (${pk_column}, data, type_name)
                                 VALUES ($1, $2, $3)
                                 ON CONFLICT (${pk_column})
@@ -92,6 +153,7 @@ exports.insertType = async function(schema, table_config, input) {
                            target_type_name,
                            ])
         await client.query('COMMIT')
+        await setGlobalLookup(schema, table_config, pk)
     } catch (e) {
         console.log("something failed")
         await client.query('ROLLBACK')
@@ -141,15 +203,24 @@ const opMap = {
     LIKE: "LIKE",
     RE: "=",
     IN: "IN",
+    LT: "<",
+    GT: ">",
+    LTE: "<=",
+    GTE: ">=",
 }
 
 
 function renderQuery(query) {
-    if(["EQ", "NE", "LIKE", "RE", "IN"].includes(query.operator)) {
+    if(["EQ", "NE", "LIKE", "RE", "IN", "LT", "GT", "LTE", "GTE"].includes(query.operator)) {
         // simple query with no child-elements
         // TODO - add support for numeric values
         return `data->>'${query.field}' ${opMap[query.operator]} '${query.value}'`
+    } else if(query.operator == "ISNULL") {
+        return `(NOT(data ? '${query.field}') OR (data ? '${query.field}') is NULL)`
+    } else if(query.operator == "NOTNULL") {
+        return `((data ? '${query.field}') AND (data ? '${query.field}') <> NULL)`
     } else {
+        // console.log(query)
         // a boolean expression with children
         var childrenSQL = []
         for(var child of query.children) {
@@ -212,6 +283,7 @@ exports.putType = async function(schema, table_config, pk, input) {
                            target_type_name,
                            ])
         await client.query('COMMIT')
+        await setGlobalLookup(schema, table_config, pk)
     } catch (e) {
         console.log("something failed")
         await client.query('ROLLBACK')

@@ -77,7 +77,7 @@ after(async function(){
 
 
 
-describe('Beehive test suite', function(){
+describe('Beehive general suite', function(){
 
 
     var expressApp
@@ -112,6 +112,94 @@ describe('Beehive test suite', function(){
     })
 
     describe('things', function() {
+
+        it('assignments', async function() {
+            const query = `
+                    mutation {
+                      holder1: holder(holder: {name: "holder1"}) {
+                            holder_id
+                        }
+                      holder2: holder(holder: {name: "holder2"}) {
+                            holder_id
+                        }
+                      held1: held(held: {name: "highlander1"}) {
+                            held_id
+                      }
+                      held2: held(held: {name: "highlander2"}) {
+                            held_id
+                      }
+                    }
+                `
+            var results = await request(uri, query)
+            expect(results.held1.held_id).to.not.equal(null)
+            expect(results.held2.held_id).to.not.equal(null)
+            expect(results.holder1.holder_id).to.not.equal(null)
+            expect(results.holder2.holder_id).to.not.equal(null)
+            var assign_1 = `
+                    mutation {
+                        assignment1: assignment(assignment: {assigned: "${results.held1.held_id}", holder: "${results.holder1.holder_id}", start: "${new Date().toISOString()}"}) {
+                            assignment_id
+                        }
+                        assignment2: assignment(assignment: {assigned: "${results.held2.held_id}", holder: "${results.holder1.holder_id}", start: "${new Date().toISOString()}"}) {
+                            assignment_id
+                        }
+                    }
+                `
+            var results_assign_1 = await request(uri, assign_1)
+            console.log("================== ASSIGNMENTS ==============================")
+            console.log(results_assign_1)
+            expect(results_assign_1.assignment1.assignment_id).to.not.equal(null)
+            expect(results_assign_1.assignment2.assignment_id).to.not.equal(null)
+            var verifyQuery = `
+                query {
+                  getAssignments {
+                    data {
+                      assignment_id
+                      assigned {
+                        held_id
+                      }
+                      holder {
+                        holder_id
+                      }
+                      start
+                      end
+                    }
+                  }
+                }
+            `
+            console.log("================== VERIFICATION SET 1 =======================")
+            var verificationSet = await request(uri, verifyQuery)
+            console.log(verificationSet)
+            expect(verificationSet.getAssignments.data.length).to.equal(2)
+            var assign_2 = `
+                    mutation {
+                        assignment1: assignment(assignment: {assigned: "${results.held1.held_id}", holder: "${results.holder2.holder_id}", start: "${new Date().toISOString()}"}) {
+                            assignment_id
+                        }
+                    }
+                `
+            var results_assign_2 = await request(uri, assign_2)
+            console.log("================== VERIFICATION SET 2 =======================")
+            verificationSet = await request(uri, verifyQuery)
+            console.log(verificationSet)
+            expect(verificationSet.getAssignments.data.length).to.equal(3)
+            for(var assignment of verificationSet.getAssignments.data) {
+                if(assignment.assignment_id == results_assign_2.assignment1.assignment_id) {
+                    expect(assignment.end).to.equal(null)
+                    expect(assignment.assigned.held_id).to.equal(results.held1.held_id)
+                    expect(assignment.holder.holder_id).to.equal(results.holder2.holder_id)
+                } else if(assignment.assigned.held_id == results.held1.held_id) {
+                    expect(assignment.end).to.not.equal(null)
+                    expect(assignment.assigned.held_id).to.equal(results.held1.held_id)
+                    expect(assignment.holder.holder_id).to.equal(results.holder1.holder_id)
+                } else if(assignment.assigned.held_id == results.held1.held_id) {
+                    expect(assignment.end).to.equal(null)
+                    expect(assignment.assigned.held_id).to.equal(results.held2.held_id)
+                    expect(assignment.holder.holder_id).to.equal(results.holder1.holder_id)
+                }
+            }
+        })
+
         it('creates a thing', async function() {
             var query = `
                     mutation {
@@ -341,9 +429,6 @@ describe('Beehive test suite', function(){
         })
 
 
-
-
-
         it('list relations', async function() {
             var query = `
                     mutation {
@@ -395,7 +480,7 @@ describe('Beehive test suite', function(){
 
 
 
-describe('Beehive test suite', function(){
+describe('Beehive no schema test', function(){
 
     describe('exceptions', function() {
         it('should fail', async function() {
