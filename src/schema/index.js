@@ -13,6 +13,13 @@ exports.schema = makeExecutableSchema({
   typeDefs: [
     BeehiveTypeDefs,
 `
+    
+    enum TypeOfThing {
+        WOOD
+        PLASTIC
+        STONE
+        WATER
+    }
 
     interface AnyThing @beehiveTable(table_name: "things", pk_column: "thing_id") {
         thing_id: ID!
@@ -21,6 +28,8 @@ exports.schema = makeExecutableSchema({
     type Thing implements AnyThing @beehiveTable(table_name: "things", pk_column: "thing_id") {
         thing_id: ID!
         name: String
+        material: String
+        type: TypeOfThing
         related: [RelatedThing!] @beehiveRelation(target_type_name: "RelatedThing", target_field_name: "thing")
         dimensions: [Float!]
     }
@@ -28,11 +37,13 @@ exports.schema = makeExecutableSchema({
     input ThingInput {
         name: String
         dimensions: [Float!]
+        material: String
+        type: TypeOfThing
     }
 
     type RelatedThing @beehiveTable(table_name: "rel_things") {
         rel_thing_id: ID!
-        name: String
+        name: String @beehiveIndexed(target_type_name: "Thing")
         thing: Thing @beehiveRelation(target_type_name: "Thing")
         subject: String
         start: Datetime
@@ -55,10 +66,49 @@ exports.schema = makeExecutableSchema({
         page_info: PageInfo
     }
 
+    type Holder @beehiveTable(table_name: "holders") {
+        holder_id: ID!
+        name: String
+    }
+
+    type Held @beehiveTable(table_name: "held") {
+        held_id: ID!
+        name: String
+    }
+
+    type Assignment @beehiveAssignmentType(table_name: "assignments", assigned_field: "assigned", assignee_field: "holder", exclusive: true) {
+        assignment_id: ID!
+        assigned: Held! @beehiveRelation(target_type_name: "Held")
+        holder: Holder! @beehiveRelation(target_type_name: "Holder")
+        start: Datetime!
+        end: Datetime
+    }
+
+    type AssignmentList {
+        data: [Assignment!]!
+        page_info: PageInfo!
+    }
+
+    input NamedInput {
+        name: String
+    }
+
+    input AssignmentInput {
+        assigned: ID!
+        holder: ID!
+        start: Datetime!
+        end: Datetime
+    }
+
     type Query {
         things(page: PaginationInput): ThingList! @beehiveList(target_type_name: "Thing")
+        findThings(query: QueryExpression!, page: PaginationInput): ThingList @beehiveQuery(target_type_name: "Thing")
+        matchThings(name: String, material: String, type: TypeOfThing, page: PaginationInput): ThingList @beehiveSimpleQuery(target_type_name: "Thing")
         getThing(thing_id: String!): Thing @beehiveGet(target_type_name: "Thing")
         relatedThings(page: PaginationInput): RelatedThingsList! @beehiveList(target_type_name: "RelatedThing")
+
+        # assignment things
+        getAssignments(page: PaginationInput): AssignmentList @beehiveList(target_type_name: "Assignment")
     }
 
     type Mutation {
@@ -67,6 +117,11 @@ exports.schema = makeExecutableSchema({
         deleteThing(thing_id: ID!, thing: ThingInput!): Thing! @beehiveDelete(target_type_name: "Thing")
         newRelatedThing(relatedThing: RelatedThingInput): RelatedThing! @beehiveCreate(target_type_name: "RelatedThing")
         updateRelatedThing(rel_thing_id: ID!, relatedThing: RelatedThingInput!): RelatedThing! @beehiveUpdate(target_type_name: "RelatedThing")
+
+        # assignments
+        holder(holder: NamedInput!): Holder! @beehiveCreate(target_type_name: "Holder")
+        held(held: NamedInput!): Held! @beehiveCreate(target_type_name: "Held")
+        assignment(assignment: AssignmentInput!): Assignment! @beehiveCreate(target_type_name: "Assignment")
     }
 
     schema @beehive(schema_name: "beehive_tests") {

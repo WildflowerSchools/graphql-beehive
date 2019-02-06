@@ -1,12 +1,13 @@
 {
     "name": "@wildflowerschools/graphql-beehive",
-    "version": "0.6.0",
+    "version": "0.7.6",
     "description": "A set of tools for working with PostgreSQL and GraphQL",
     "main": "src/index.js",
+    "repository": "https://github.com/WildflowerSchools/graphql-beehive",
     "scripts": {
-        "test": "mocha src/**.spec.js --timeout 30000",
+        "test": "BEEHIVE_ENABLE_EVENTS=yes PROTON_PACK_STREAM_URI=http://localhost:1111/streams/fakenews mocha --recursive --timeout 30000",
         "coverage": "node_modules/.bin/nyc npm test",
-        "start": "node_modules/.bin/nodemon src/test-server.js"
+        "start": "node_modules/.bin/nodemon test/test-server.js"
     },
     "publishConfig": {
         "access": "public"
@@ -14,27 +15,30 @@
     "author": "optimuspaul",
     "license": "MIT",
     "dependencies": {
+        "@wildflowerschools/graphql-s3-directive": "^0.2.0",
+        "axios": "^0.18.0",
         "graphql": "^14.0.2",
         "graphql-custom-types": "^1.4.0",
         "graphql-directive": "^0.2.1",
         "graphql-iso-date": "^3.6.1",
         "graphql-tools": "^4.0.1",
         "graphql-voyager": "^1.0.0-rc.26",
-        "pg": "^7.5.0"
+        "pg": "^7.5.0",
+        "redis": "^2.8.0"
     },
     "devDependencies": {
         "apollo": "^1.9.2",
         "apollo-server": "^2.1.0",
         "apollo-server-express": "^2.1.0",
-        "axios": "^0.18.0",
         "body-parser": "^1.18.3",
         "chai": "^4.2.0",
-        "debug": "^4.1.0",
+        "debug": "^4.1.1",
         "docker-run": "^3.1.0",
         "express": "^4.16.4",
         "graphql-request": "^1.8.2",
         "mocha": "^5.2.0",
-        "nodemon": "^1.18.4",
+        "mock-http-server": "^1.2.0",
+        "nodemon": "^1.18.8",
         "npm": "^6.4.1",
         "nyc": "^13.1.0",
         "request": "^2.88.0",

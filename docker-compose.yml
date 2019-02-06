@@ -8,6 +8,8 @@ services:
       POSTGRES_PASSWORD: iamaninsecurepassword
       POSTGRES_USER: beehive_user
       POSTGRES_DB: beehive
+    ports:
+      - 5432:5432
 
   beehive-service:
     build:
@@ -21,6 +23,8 @@ services:
       PGUSER: beehive_user
       PGDATABASE: beehive
       PGHOST: postgres
+      BEEHIVE_ENABLE_EVENTS: "yes"
+      PROTON_PACK_STREAM_URI: http://127.0.0.1:5000/streams/venkman
     ports:
       - 4022:4000
     command: "scripts/setup-and-startup.sh"
