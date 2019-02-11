@@ -33,7 +33,7 @@ exports.BeehiveTypeDefs = `
     
     directive @beehiveRelation(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
 
-    directive @beehiveAssignmentType(table_name: String, pk_column: String, assigned_field: String!, assignee_field: String!, start_field_name: String, end_field_name: String, exclusive: Boolean) on OBJECT
+    directive @beehiveAssignmentType(table_name: String, pk_column: String, assigned_field: String!, assignee_field: String, start_field_name: String, end_field_name: String, exclusive: Boolean) on OBJECT
 
     directive @beehiveUnion on UNION
 
