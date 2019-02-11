@@ -197,13 +197,13 @@ class BeehiveCreateDirective extends SchemaDirectiveVisitor {
         const inputName = target_type_name.charAt(0).toLowerCase() + target_type_name.slice(1)
         const schema = this.schema
         const s3FileFields = this.args.s3_file_fields
-        const table_config = this.schema._beehive.tables[target_type_name]
-
-        if(!table_config) {
-            throw Error(`Table definition (${target_type_name}) not forund by beehive.`)
-        }
         
         field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+
+            if(!table_config) {
+                throw Error(`Table definition (${target_type_name}) not forund by beehive.`)
+            }
             const input = args[inputName]
             if(!input) {
                 throw Error(`Input not found as expected (${inputName}) [${JSON.stringify(args)}] by beehive.`)

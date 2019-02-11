@@ -12,6 +12,7 @@ install:
 - npm ci
 script:
 - npm run coverage
+
 deploy:
   provider: npm
   on:
