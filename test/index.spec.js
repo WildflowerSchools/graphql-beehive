@@ -471,6 +471,90 @@ describe('Beehive general suite', function(){
             expect(getThing.updatedThing.related.length).to.equal(2)
         })
 
+
+        it('filtered timestamped relations', async function() {
+            var query = `
+                    mutation {
+                      newThing(thing: {name: "observatory"}) {
+                        thing_id
+                      }
+                    }
+                `
+            var thing = await request(uri, query)
+            query = `
+                    mutation {
+                      observation1: observe(observation: {timestamp: "2019-01-01T10:10:10.000Z", thing: "${thing.newThing.thing_id}", data: "data 1"}) {
+                        observation_id
+                      }
+                      observation2: observe(observation: {timestamp: "2019-01-02T10:10:10.000Z", thing: "${thing.newThing.thing_id}", data: "data 2"}) {
+                        observation_id
+                      }
+                      observation3: observe(observation: {timestamp: "2019-01-03T10:10:10.000Z", thing: "${thing.newThing.thing_id}", data: "data 3"}) {
+                        observation_id
+                      }
+                      observation4: observe(observation: {timestamp: "2019-01-04T10:10:10.000Z", thing: "${thing.newThing.thing_id}", data: "data 4"}) {
+                        observation_id
+                      }
+                      observation5: observe(observation: {timestamp: "2019-01-05T10:10:10.000Z", thing: "${thing.newThing.thing_id}", data: "data 5"}) {
+                        observation_id
+                      }
+                    }
+                `
+            // console.log(query)
+            var related = await request(uri, query)
+            console.log(related)
+
+            query = `
+                    query {
+                        getThing(thing_id: "${thing.newThing.thing_id}") {
+                            observations(since: "2019-01-03T10:08:10.000Z") {
+                                observation_id
+                                data
+                            }
+                        }
+                    }
+                `
+            // console.log(query)
+            var getThing = await request(uri, query)
+            // console.log(getThing)
+            expect(getThing.getThing.observations).to.not.equal(null)
+            expect(getThing.getThing.observations.length).to.equal(3)
+            
+            query = `
+                    query {
+                        getThing(thing_id: "${thing.newThing.thing_id}") {
+                            observations(before: "2019-01-03T10:08:10.000Z") {
+                                observation_id
+                                data
+                            }
+                        }
+                    }
+                `
+            // console.log(query)
+            var getThing = await request(uri, query)
+            // console.log(getThing)
+            expect(getThing.getThing.observations).to.not.equal(null)
+            expect(getThing.getThing.observations.length).to.equal(2)
+            
+            query = `
+                    query {
+                        getThing(thing_id: "${thing.newThing.thing_id}") {
+                            observations(since: "2019-01-03T10:08:10.000Z", before: "2019-01-03T10:20:10.000Z") {
+                                observation_id
+                                data
+                            }
+                        }
+                    }
+                `
+            // console.log(query)
+            var getThing = await request(uri, query)
+            // console.log(getThing)
+            expect(getThing.getThing.observations).to.not.equal(null)
+            expect(getThing.getThing.observations.length).to.equal(1)
+            expect(getThing.getThing.observations[0].data).to.equal("data 3")
+            
+        })
+
     })
 
 })

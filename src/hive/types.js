@@ -1,5 +1,5 @@
 const {SchemaDirectiveVisitor} = require('graphql-tools')
-const {insertType, listType, getItem, getRelatedItems, putType, patchType, queryType, simpleQueryType, inferType} = require("./pgsql")
+const {insertType, listType, getItem, getRelatedItems, getRelatedItemsFiltered, putType, patchType, queryType, simpleQueryType, inferType} = require("./pgsql")
 const drones = require("./drones")
 
 const EVENTS = process.env.BEEHIVE_ENABLE_EVENTS == "yes"
@@ -39,17 +39,15 @@ exports.BeehiveTypeDefs = `
 
     directive @beehiveUnionResolver(target_types: [String!], target_field_names: [String]) on FIELD_DEFINITION
 
-    directive @beehiveQuery(
-            target_type_name: String!
-        ) on FIELD_DEFINITION
+    directive @beehiveQuery(target_type_name: String!) on FIELD_DEFINITION
 
-    directive @beehiveSimpleQuery(
-            target_type_name: String!
-        ) on FIELD_DEFINITION
+    directive @beehiveSimpleQuery(target_type_name: String!) on FIELD_DEFINITION
 
-    directive @beehiveGet(
-            target_type_name: String!
-        ) on FIELD_DEFINITION
+    directive @beehiveGet(target_type_name: String!) on FIELD_DEFINITION
+
+    # directive @beehiveAssignmentFilter(target_type_name: String!, assignee_field: String, start_field_name: String, end_field_name: String) on FIELD_DEFINITION
+
+    directive @beehiveRelationTimeFilter(target_type_name: String!, target_field_name: String, timestamp_field_name: String) on FIELD_DEFINITION
 
     input PaginationInput {
         max: Int
@@ -71,6 +69,8 @@ exports.BeehiveTypeDefs = `
 
     type _beehive_helper_ {
         system: System!
+        assignmentFilter(during: Datetime, since: Datetime, before: Datetime, page: PaginationInput): Boolean
+        tsFilter(since: Datetime, before: Datetime, page: PaginationInput): Boolean
     }
 
     enum Operator {
@@ -492,6 +492,97 @@ class BeehiveAssignmentTypeDirective extends SchemaDirectiveVisitor {
 }
 
 
+// class BeehiveAssignmentFilterDirective extends SchemaDirectiveVisitor {
+// note: started this and realized it was not what I was trying to build, will come back to this and do it right
+//     visitFieldDefinition(field, details) {
+//         // directive @beehiveAssignmentFilter(target_type_name: String!, assignee_field: String, start_field_name: String, end_field_name: String) on FIELD_DEFINITION
+//         field.args = this.schema._typeMap._beehive_helper_._fields.assignmentFilter.args
+//         const schema = this.schema
+//         const target_type_name = this.args.target_type_name
+//         const assignee_field - this.args.assignee_field
+//         const this_object_type = details.objectType
+
+//         const start_field_name = this.args.start_field_name ? this.args.start_field_name : "start"
+//         const end_field_name = this.args.end_field_name ? this.args.end_field_name : "end"
+
+//         field.resolve = async function (obj, args, context, info) {
+//             const table_config = schema._beehive.tables[target_type_name]
+//             const local_table_config = schema._beehive.tables[this_object_type]
+//             if(args) {
+//                 // construct a query object and query the shit out of the data
+//     // input QueryExpression {
+//     //     field: String
+//     //     operator: Operator!
+//     //     value: String
+//     //     children: [QueryExpression!]
+//     // }
+//                 var query = {
+//                     operator: "AND",
+//                     children: [],
+//                 }
+//                 if(args.since) {
+//                     query.children.push({
+//                         field: ""
+//                     })
+//                 }
+//                 return getRelatedItemsFiltered(schema, table_config, assignee_field, obj[local_table_config.pk_column], query, args.page)
+//             } else {
+//                 // treat as a normal relation
+//                 return getRelatedItems(schema, table_config, assignee_field, obj[local_table_config.pk_column], args.page)
+//             }
+
+//         }
+
+//     }
+
+// }
+
+class BeehiveRelationTimeFilterDirective extends SchemaDirectiveVisitor {
+
+    visitFieldDefinition(field, details) {
+        field.args = this.schema._typeMap._beehive_helper_._fields.tsFilter.args
+        const schema = this.schema
+        const target_type_name = this.args.target_type_name
+        const target_field_name = this.args.target_field_name
+        const this_object_type = details.objectType
+
+        const timestamp_field_name = this.args.timestamp_field_name ? this.args.timestamp_field_name : "timestamp"
+
+        field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            const local_table_config = schema._beehive.tables[this_object_type]
+            if(args) {
+                var query = {
+                    operator: "AND",
+                    children: [],
+                }
+                if(args.since) {
+                    query.children.push({
+                        field: timestamp_field_name,
+                        operator: "GTE",
+                        value: args.since,
+                    })
+                }
+                if(args.before) {
+                    query.children.push({
+                        field: timestamp_field_name,
+                        operator: "LT",
+                        value: args.before,
+                    })
+                }
+                return getRelatedItemsFiltered(schema, table_config, target_field_name, obj[local_table_config.pk_column], query, args.page)
+            } else {
+                // treat as a normal relation
+                return getRelatedItems(schema, table_config, target_field_name, obj[local_table_config.pk_column], args.page)
+            }
+
+        }
+
+    }
+
+}
+
+
 exports.BeehiveDirectives = {
     beehive: BeehiveDirective,
     beehiveTable: BeehiveDirective,
@@ -507,6 +598,8 @@ exports.BeehiveDirectives = {
     beehiveUpdate: BeehiveUpdateDirective,
     beehiveIndexed: BeehiveDirective,
     beehiveAssignmentType: BeehiveAssignmentTypeDirective,
+    // beehiveAssignmentFilter: BeehiveAssignmentFilterDirective,
+    beehiveRelationTimeFilter: BeehiveRelationTimeFilterDirective,
 };
 
 if (graphS3) {

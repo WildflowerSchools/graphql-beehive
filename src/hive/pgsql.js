@@ -196,6 +196,16 @@ exports.getRelatedItems = async function(schema, table_config, target_field_name
     return rows
 }
 
+exports.getRelatedItemsFiltered = async function(schema, table_config, target_field_name, value, query, pageInfo) {
+    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}' AND ${renderQuery(query)}`
+    var things = await pool.query(query)
+    var rows = []
+    for(var row of things.rows) {
+        rows.push(applySystem(row))
+    }
+    return rows
+}
+
 
 const opMap = {
     EQ: "=",

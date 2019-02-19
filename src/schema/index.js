@@ -32,6 +32,7 @@ exports.schema = makeExecutableSchema({
         type: TypeOfThing
         related: [RelatedThing!] @beehiveRelation(target_type_name: "RelatedThing", target_field_name: "thing")
         dimensions: [Float!]
+        observations: [Observation!] @beehiveRelationTimeFilter(target_type_name: "Observation", target_field_name: "thing", timestamp_field_name: "timestamp")
     }
 
     input ThingInput {
@@ -64,6 +65,19 @@ exports.schema = makeExecutableSchema({
     type RelatedThingsList {
         data: [RelatedThing!]!
         page_info: PageInfo
+    }
+
+    type Observation @beehiveTable(table_name: "observations") {
+        observation_id: ID!
+        thing: Thing!
+        timestamp: Datetime!
+        data: String
+    }
+
+    input ObservationInput {
+        timestamp: Datetime!
+        thing: ID!
+        data: String
     }
 
     type Holder @beehiveTable(table_name: "holders") {
@@ -121,6 +135,9 @@ exports.schema = makeExecutableSchema({
         holder(holder: NamedInput!): Holder! @beehiveCreate(target_type_name: "Holder")
         held(held: NamedInput!): Held! @beehiveCreate(target_type_name: "Held")
         assignment(assignment: AssignmentInput!): Assignment! @beehiveCreate(target_type_name: "Assignment")
+
+        # time filtering
+        observe(observation: ObservationInput): Observation! @beehiveCreate(target_type_name: "Observation")
     }
 
     schema @beehive(schema_name: "beehive_tests") {
