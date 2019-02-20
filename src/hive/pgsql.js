@@ -181,6 +181,9 @@ exports.getItem = async function(schema, table_config, pk) {
 
     if(things.rows.length) {
         return applySystem(things.rows[0])
+    } else {
+        console.log(`looking in ${schema._beehive.schema_name}.${table_config.table_name} for ${table_config.pk_column} = ${pk} but didn't find it`)
+        console.log(things)
     }
     return null
 }
