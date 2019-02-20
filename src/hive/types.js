@@ -82,6 +82,10 @@ exports.BeehiveTypeDefs = `
         LIKE
         RE
         IN
+        LT
+        GT
+        LTE
+        GTE
     }
 
     input QueryExpression {
