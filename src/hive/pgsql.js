@@ -119,6 +119,7 @@ exports.insertType = async function(schema, table_config, input) {
         await client.query('BEGIN')
 
         if(table_config.table_type == "assignment" && table_config.exclusive) {
+            const start = forDB[table_config.start_field_name] = new Date(forDB[table_config.start_field_name]).toISOString()
             let where = renderQuery({
                     operator: "AND",
                     children: [
@@ -130,16 +131,16 @@ exports.insertType = async function(schema, table_config, input) {
                         {
                             operator: "OR",
                             children: [
-                                {field: "end", operator: "ISNULL"},
-                                {field: "end", operator: "GT", value: forDB.start},
-                                {field: "start", operator: "GT", value: forDB.start},
+                                {field: table_config.end_field_name, operator: "ISNULL"},
+                                {field: table_config.end_field_name, operator: "GT", value: start},
+                                {field: table_config.start_field_name, operator: "GT", value: start},
                             ],
                         },
                     ]
                 })
-            // console.log(where)
+
             await client.query(`UPDATE ${schema._beehive.schema_name}.${table_config.table_name} 
-                                    SET data = data || '{"${table_config.end_field_name}": "${forDB.start}"}',
+                                    SET data = data || '{"${table_config.end_field_name}": "${start}"}',
                                     last_modified = CURRENT_TIMESTAMP WHERE ${where}`)
         }
 
