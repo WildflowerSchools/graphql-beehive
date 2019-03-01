@@ -70,7 +70,7 @@ before(async function() {
 })
 
 
-after(async function(){ 
+after(async function(){
     console.log("shutting down postgres and express")
     dbContainer.destroy()
 })
@@ -198,6 +198,26 @@ describe('Beehive general suite', function(){
                     expect(assignment.holder.holder_id).to.equal(results.holder1.holder_id)
                 }
             }
+
+            // test filtering on an assignment
+            var filer_assignments_1 = `
+                query {
+                    getHolder(holder_id: "${results.holder1.holder_id}") {
+                        holder_id
+                        assignments(current: true) {
+                            assignment_id
+                        }
+                    }
+                }
+            `
+            var results_filer_assignments_1 = await request(uri, filer_assignments_1)
+            console.log("-------------------------------------------------------")
+            console.log("-------------------------------------------------------")
+            console.log(results_filer_assignments_1.getHolder.assignments)
+            console.log("-------------------------------------------------------")
+            console.log("-------------------------------------------------------")
+            expect(results_filer_assignments_1.getHolder.assignments.length).to.equal(1)
+            expect(results_filer_assignments_1.getHolder.assignments[0].assignment_id).to.equal(results_assign_1.assignment2.assignment_id)
         })
 
         it('creates a thing', async function() {
@@ -519,7 +539,7 @@ describe('Beehive general suite', function(){
             // console.log(getThing)
             expect(getThing.getThing.observations).to.not.equal(null)
             expect(getThing.getThing.observations.length).to.equal(3)
-            
+
             query = `
                     query {
                         getThing(thing_id: "${thing.newThing.thing_id}") {
@@ -535,7 +555,7 @@ describe('Beehive general suite', function(){
             // console.log(getThing)
             expect(getThing.getThing.observations).to.not.equal(null)
             expect(getThing.getThing.observations.length).to.equal(2)
-            
+
             query = `
                     query {
                         getThing(thing_id: "${thing.newThing.thing_id}") {
@@ -552,7 +572,7 @@ describe('Beehive general suite', function(){
             expect(getThing.getThing.observations).to.not.equal(null)
             expect(getThing.getThing.observations.length).to.equal(1)
             expect(getThing.getThing.observations[0].data).to.equal("data 3")
-            
+
         })
 
     })
@@ -576,11 +596,3 @@ describe('Beehive no schema test', function(){
     })
 
 })
-
-
-
-
-
-
-
-

@@ -83,6 +83,7 @@ exports.schema = makeExecutableSchema({
     type Holder @beehiveTable(table_name: "holders") {
         holder_id: ID!
         name: String
+        assignments: [Assignment!] @beehiveAssignmentFilter(target_type_name: "Assignment", assignee_field: "holder")
     }
 
     type Held @beehiveTable(table_name: "held") {
@@ -123,6 +124,8 @@ exports.schema = makeExecutableSchema({
 
         # assignment things
         getAssignments(page: PaginationInput): AssignmentList @beehiveList(target_type_name: "Assignment")
+        # get holder
+        getHolder(holder_id: ID): Holder @beehiveGet(target_type_name: "Holder")
     }
 
     type Mutation {
