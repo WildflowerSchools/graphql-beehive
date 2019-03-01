@@ -24,13 +24,13 @@ exports.BeehiveTypeDefs = `
     directive @beehiveIndexed(target_type_name: String!) on FIELD_DEFINITION
 
     directive @beehiveCreate(target_type_name: String!, s3_file_fields: [String!]) on FIELD_DEFINITION
-    
+
     directive @beehiveUpdate(target_type_name: String!, s3_file_fields: [String!]) on FIELD_DEFINITION
-    
+
     directive @beehiveReplace(target_type_name: String!, s3_file_fields: [String!]) on FIELD_DEFINITION
 
     directive @beehiveList(target_type_name: String!) on FIELD_DEFINITION
-    
+
     directive @beehiveRelation(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
 
     directive @beehiveAssignmentType(table_name: String, pk_column: String, assigned_field: String!, assignee_field: String, start_field_name: String, end_field_name: String, exclusive: Boolean) on OBJECT
@@ -45,7 +45,7 @@ exports.BeehiveTypeDefs = `
 
     directive @beehiveGet(target_type_name: String!) on FIELD_DEFINITION
 
-    # directive @beehiveAssignmentFilter(target_type_name: String!, assignee_field: String, start_field_name: String, end_field_name: String) on FIELD_DEFINITION
+    directive @beehiveAssignmentFilter(target_type_name: String!, assignee_field: String, start_field_name: String, end_field_name: String) on FIELD_DEFINITION
 
     directive @beehiveRelationTimeFilter(target_type_name: String!, target_field_name: String, timestamp_field_name: String) on FIELD_DEFINITION
 
@@ -69,7 +69,7 @@ exports.BeehiveTypeDefs = `
 
     type _beehive_helper_ {
         system: System!
-        assignmentFilter(during: Datetime, since: Datetime, before: Datetime, page: PaginationInput): Boolean
+        assignmentFilter(at: Datetime, current: Boolean, page: PaginationInput): Boolean
         tsFilter(since: Datetime, before: Datetime, page: PaginationInput): Boolean
     }
 
@@ -201,7 +201,7 @@ class BeehiveCreateDirective extends SchemaDirectiveVisitor {
         const inputName = target_type_name.charAt(0).toLowerCase() + target_type_name.slice(1)
         const schema = this.schema
         const s3FileFields = this.args.s3_file_fields
-        
+
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
 
@@ -423,7 +423,7 @@ class BeehiveUnionDirective extends SchemaDirectiveVisitor {
         union.resolveType = async function(obj, context, info) {
             // This doesn't actually work.
             return obj.system.type_name
-        } 
+        }
     }
 
     visitFieldDefinition(field, details) {
@@ -496,50 +496,51 @@ class BeehiveAssignmentTypeDirective extends SchemaDirectiveVisitor {
 }
 
 
-// class BeehiveAssignmentFilterDirective extends SchemaDirectiveVisitor {
-// note: started this and realized it was not what I was trying to build, will come back to this and do it right
-//     visitFieldDefinition(field, details) {
-//         // directive @beehiveAssignmentFilter(target_type_name: String!, assignee_field: String, start_field_name: String, end_field_name: String) on FIELD_DEFINITION
-//         field.args = this.schema._typeMap._beehive_helper_._fields.assignmentFilter.args
-//         const schema = this.schema
-//         const target_type_name = this.args.target_type_name
-//         const assignee_field - this.args.assignee_field
-//         const this_object_type = details.objectType
+class BeehiveAssignmentFilterDirective extends SchemaDirectiveVisitor {
 
-//         const start_field_name = this.args.start_field_name ? this.args.start_field_name : "start"
-//         const end_field_name = this.args.end_field_name ? this.args.end_field_name : "end"
+    visitFieldDefinition(field, details) {
+        field.args = this.schema._typeMap._beehive_helper_._fields.assignmentFilter.args
+        const schema = this.schema
+        const target_type_name = this.args.target_type_name
+        const assignee_field = this.args.assignee_field
+        const this_object_type = details.objectType
 
-//         field.resolve = async function (obj, args, context, info) {
-//             const table_config = schema._beehive.tables[target_type_name]
-//             const local_table_config = schema._beehive.tables[this_object_type]
-//             if(args) {
-//                 // construct a query object and query the shit out of the data
-//     // input QueryExpression {
-//     //     field: String
-//     //     operator: Operator!
-//     //     value: String
-//     //     children: [QueryExpression!]
-//     // }
-//                 var query = {
-//                     operator: "AND",
-//                     children: [],
-//                 }
-//                 if(args.since) {
-//                     query.children.push({
-//                         field: ""
-//                     })
-//                 }
-//                 return getRelatedItemsFiltered(schema, table_config, assignee_field, obj[local_table_config.pk_column], query, args.page)
-//             } else {
-//                 // treat as a normal relation
-//                 return getRelatedItems(schema, table_config, assignee_field, obj[local_table_config.pk_column], args.page)
-//             }
+        const start_field_name = this.args.start_field_name ? this.args.start_field_name : "start"
+        const end_field_name = this.args.end_field_name ? this.args.end_field_name : "end"
 
-//         }
+        field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            const local_table_config = schema._beehive.tables[this_object_type]
+            if(args) {
+                var query = {
+                    operator: "AND",
+                    children: [],
+                }
+                if(args.current) {
+                    // NEED TEST
+                    const now = new Date().toISOString()
+                    query.children.push({field: start_field_name, operator: "LTE", value: now})
+                    query.children.push({operator: "OR", children: [
+                            {field: end_field_name, operator: "ISNULL"},
+                            {field: end_field_name, operator: "GTE", value: now},
+                        ]
+                    })
+                } else if(args.at) {
+                    // NEED TEST
+                    query.children.push({field: start_field_name, operator: "GTE", value: args.at})
+                    query.children.push({field: end_field_name, operator: "LTE", value: args.at})
+                }
+                return getRelatedItemsFiltered(schema, table_config, assignee_field, obj[local_table_config.pk_column], query, args.page)
+            } else {
+                // treat as a normal relation
+                return getRelatedItems(schema, table_config, assignee_field, obj[local_table_config.pk_column], args.page)
+            }
 
-//     }
+        }
 
-// }
+    }
+
+}
 
 class BeehiveRelationTimeFilterDirective extends SchemaDirectiveVisitor {
 
@@ -602,7 +603,7 @@ exports.BeehiveDirectives = {
     beehiveUpdate: BeehiveUpdateDirective,
     beehiveIndexed: BeehiveDirective,
     beehiveAssignmentType: BeehiveAssignmentTypeDirective,
-    // beehiveAssignmentFilter: BeehiveAssignmentFilterDirective,
+    beehiveAssignmentFilter: BeehiveAssignmentFilterDirective,
     beehiveRelationTimeFilter: BeehiveRelationTimeFilterDirective,
 };
 

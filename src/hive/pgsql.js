@@ -139,7 +139,7 @@ exports.insertType = async function(schema, table_config, input) {
                     ]
                 })
 
-            await client.query(`UPDATE ${schema._beehive.schema_name}.${table_config.table_name} 
+            await client.query(`UPDATE ${schema._beehive.schema_name}.${table_config.table_name}
                                     SET data = data || '{"${table_config.end_field_name}": "${start}"}',
                                     last_modified = CURRENT_TIMESTAMP WHERE ${where}`)
         }
@@ -288,7 +288,7 @@ exports.putType = async function(schema, table_config, pk, input) {
         }
 
         await client.query('BEGIN')
-        await client.query(`UPDATE ${schema._beehive.schema_name}.${table_config.table_name} 
+        await client.query(`UPDATE ${schema._beehive.schema_name}.${table_config.table_name}
                                 SET data = $2,
                                 type_name = $3,
                                 last_modified = CURRENT_TIMESTAMP WHERE ${pk_column} = $1`, [
@@ -320,4 +320,3 @@ exports.patchType = async function(schema, table_config, pk, input) {
     }
     return exports.putType(schema, table_config, pk, current)
 }
-

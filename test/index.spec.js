@@ -198,6 +198,21 @@ describe('Beehive general suite', function(){
                     expect(assignment.holder.holder_id).to.equal(results.holder1.holder_id)
                 }
             }
+
+            // test filtering on an assignment
+            var filer_assignments_1 = `
+                query {
+                    getHolder(holder_id: "${results.holder1.holder_id}") {
+                        holder_id
+                        assignments(current: true) {
+                            assignment_id
+                        }
+                    }
+                }
+            `
+            var results_filer_assignments_1 = await request(uri, filer_assignments_1)
+            console.log(results_filer_assignments_1)
+            expect(true).to.equal(false)
         })
 
         it('creates a thing', async function() {
