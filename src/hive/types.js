@@ -47,11 +47,29 @@ exports.BeehiveTypeDefs = `
 
     directive @beehiveAssignmentFilter(target_type_name: String!, assignee_field: String, start_field_name: String, end_field_name: String) on FIELD_DEFINITION
 
+    directive @beehiveRelationFilter(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
+
     directive @beehiveRelationTimeFilter(target_type_name: String!, target_field_name: String, timestamp_field_name: String) on FIELD_DEFINITION
+
+    enum SortDirection {
+        ASC
+        DSC
+    }
 
     input PaginationInput {
         max: Int
         cursor: String
+        sort: SortInput
+    }
+
+    input SortInput {
+        field: String!
+        direction: SortDirection
+    }
+
+    type Sort {
+        field: String!
+        direction: SortDirection!
     }
 
     type PageInfo {
@@ -59,6 +77,7 @@ exports.BeehiveTypeDefs = `
         count: Int
         max: Int
         cursor: String
+        sort: Sort
     }
 
     type System {
@@ -71,6 +90,7 @@ exports.BeehiveTypeDefs = `
         system: System!
         assignmentFilter(at: Datetime, current: Boolean, page: PaginationInput): Boolean
         tsFilter(since: Datetime, before: Datetime, page: PaginationInput): Boolean
+        relationFilter(query: QueryExpression, page: PaginationInput): Boolean
     }
 
     enum Operator {
@@ -511,7 +531,7 @@ class BeehiveAssignmentFilterDirective extends SchemaDirectiveVisitor {
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
             const local_table_config = schema._beehive.tables[this_object_type]
-            if(args) {
+            if(args && (args.current || args.at)) {
                 var query = {
                     operator: "AND",
                     children: [],
@@ -587,6 +607,32 @@ class BeehiveRelationTimeFilterDirective extends SchemaDirectiveVisitor {
 
 }
 
+class beehiveRelationFilterDirective extends SchemaDirectiveVisitor {
+
+    visitFieldDefinition(field, details) {
+        field.args = this.schema._typeMap._beehive_helper_._fields.relationFilter.args
+        const schema = this.schema
+        const target_type_name = this.args.target_type_name
+        const target_field_name = this.args.target_field_name
+        const this_object_type = details.objectType
+
+        field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            const local_table_config = schema._beehive.tables[this_object_type]
+            if(args) {
+                const query = args.query
+                return getRelatedItemsFiltered(schema, table_config, target_field_name, obj[local_table_config.pk_column], query, args.page)
+            } else {
+                // treat as a normal relation
+                return getRelatedItems(schema, table_config, target_field_name, obj[local_table_config.pk_column], args.page)
+            }
+
+        }
+
+    }
+
+}
+
 
 exports.BeehiveDirectives = {
     beehive: BeehiveDirective,
@@ -604,6 +650,7 @@ exports.BeehiveDirectives = {
     beehiveIndexed: BeehiveDirective,
     beehiveAssignmentType: BeehiveAssignmentTypeDirective,
     beehiveAssignmentFilter: BeehiveAssignmentFilterDirective,
+    beehiveRelationFilter: beehiveRelationFilterDirective,
     beehiveRelationTimeFilter: BeehiveRelationTimeFilterDirective,
 };
 
