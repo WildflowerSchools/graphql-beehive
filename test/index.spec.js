@@ -411,6 +411,76 @@ describe('Beehive general suite', function(){
         })
 
 
+        it('findThings with limit and sort', async function() {
+            var query = `
+                    mutation {
+                        episode4: newThing(thing: {name: "Episode 4 - Star Wars: A New Hope"}) {
+                            thing_id
+                        }
+                        episode5: newThing(thing: {name: "Episode 5 - Star Wars: The Empire Strikes Back"}) {
+                            thing_id
+                        }
+                        episode6: newThing(thing: {name: "Episode 6 - Star Wars: Return of the Jedi"}) {
+                            thing_id
+                        }
+                        episode1: newThing(thing: {name: "Episode 1 - Star Wars: The Phantom Menace"}) {
+                            thing_id
+                        }
+                        episode2: newThing(thing: {name: "Episode 2 - Star Wars: Attack of the Clones"}) {
+                            thing_id
+                        }
+                        episode3: newThing(thing: {name: "Episode 3 - Star Wars: Revenge of the Sith"}) {
+                            thing_id
+                        }
+                        episode7: newThing(thing: {name: "Episode 7 - Star Wars: The Force Awakens"}) {
+                            thing_id
+                        }
+                        episode8: newThing(thing: {name: "Episode 8 - Star Wars: The Last Jedi"}) {
+                            thing_id
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            query = `
+                    query {
+                        findThings(query: {field: "name", operator: LIKE, value: "%Star Wars%"}, page: {max: 2, sort: [{field: "name", direction: ASC}]}) {
+                            data {
+                                ... on Thing {
+                                    thing_id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                `
+            things = await request(uri, query)
+            console.log(things)
+            expect(things.findThings).to.not.equal(null)
+            expect(things.findThings.data.length).to.equal(2)
+            expect(things.findThings.data[0].thing_id).to.not.equal(null)
+            expect(things.findThings.data[0].name).to.equal("Episode 1 - Star Wars: The Phantom Menace")
+            expect(things.findThings.data[1].thing_id).to.not.equal(null)
+            expect(things.findThings.data[1].name).to.equal("Episode 2 - Star Wars: Attack of the Clones")
+            query = `
+                    query {
+                        findThings(query: {field: "name", operator: LIKE, value: "%Star Wars%"}, page: {max: 1, sort: [{field: "name", direction: DESC}]}) {
+                            data {
+                                ... on Thing {
+                                    thing_id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                `
+            things = await request(uri, query)
+            console.log(things)
+            expect(things.findThings).to.not.equal(null)
+            expect(things.findThings.data.length).to.equal(1)
+            expect(things.findThings.data[0].thing_id).to.not.equal(null)
+            expect(things.findThings.data[0].name).to.equal("Episode 8 - Star Wars: The Last Jedi")
+        })
+
         it('matchThings', async function() {
             // matchThings(
             //     name: String,

@@ -168,7 +168,7 @@ exports.insertType = async function(schema, table_config, input) {
 
 
 exports.listType = async function(schema, table_config, pageInfo) {
-    var things = await pool.query(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}`)
+    var things = await pool.query(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}${renderPageInfo(pageInfo)}`)
     var rows = []
     for(var row of things.rows) {
         rows.push(applySystem(row))
@@ -191,7 +191,7 @@ exports.getItem = async function(schema, table_config, pk) {
 
 
 exports.getRelatedItems = async function(schema, table_config, target_field_name, value, pageInfo) {
-    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}'`
+    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}'${renderPageInfo(pageInfo)}`
     var things = await pool.query(query)
     var rows = []
     for(var row of things.rows) {
@@ -201,7 +201,7 @@ exports.getRelatedItems = async function(schema, table_config, target_field_name
 }
 
 exports.getRelatedItemsFiltered = async function(schema, table_config, target_field_name, value, query, pageInfo) {
-    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}' AND ${renderQuery(query)}`
+    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}' AND ${renderQuery(query)}${renderPageInfo(pageInfo)}`
     var things = await pool.query(query)
     var rows = []
     for(var row of things.rows) {
@@ -210,6 +210,25 @@ exports.getRelatedItemsFiltered = async function(schema, table_config, target_fi
     return rows
 }
 
+function renderPageInfo(pageInfo) {
+    var result = ""
+    if(pageInfo) {
+        if(pageInfo.sort) {
+            var sorts = []
+            for(var sort of pageInfo.sort) {
+                sorts.push(`data->>'${sort.field}' ${sort.direction ? sort.direction : 'ASC'}`)
+            }
+            result += ` ORDER BY ${sorts.join(", ")}`
+        }
+        if(pageInfo.max) {
+            result += ` LIMIT ${pageInfo.max}`
+        }
+        if(pageInfo.cursor) {
+            // TODO - need to research best practice for this, assumes this value is returned by a supported query.
+        }
+    }
+    return result
+}
 
 const opMap = {
     EQ: "=",
@@ -246,8 +265,9 @@ function renderQuery(query) {
 }
 
 exports.queryType = async function(schema, table_config, query, pageInfo) {
-    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${renderQuery(query)}`
-    var explained = await pool.query(`EXPLAIN ${sql}`)
+    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${renderQuery(query)}${renderPageInfo(pageInfo)}`
+    console.log(sql)
+    // var explained = await pool.query(`EXPLAIN ${sql}`)
     var things = await pool.query(sql)
     var rows = []
     for(var row of things.rows) {
@@ -258,9 +278,9 @@ exports.queryType = async function(schema, table_config, query, pageInfo) {
 
 exports.simpleQueryType = async function(schema, table_config, query, pageInfo) {
     // console.log(query)
-    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '${JSON.stringify(query)}'`
+    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '${JSON.stringify(query)}'${renderPageInfo(pageInfo)}`
     // console.log(sql)
-    var explained = await pool.query(`EXPLAIN ${sql}`)
+    // var explained = await pool.query(`EXPLAIN ${sql}`)
     // console.log(explained)
     var things = await pool.query(sql)
     var rows = []

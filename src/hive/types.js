@@ -53,13 +53,13 @@ exports.BeehiveTypeDefs = `
 
     enum SortDirection {
         ASC
-        DSC
+        DESC
     }
 
     input PaginationInput {
         max: Int
         cursor: String
-        sort: SortInput
+        sort: [SortInput!]
     }
 
     input SortInput {
