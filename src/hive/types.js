@@ -1,5 +1,5 @@
 const {SchemaDirectiveVisitor} = require('graphql-tools')
-const {insertType, listType, getItem, getRelatedItems, getRelatedItemsFiltered, putType, patchType, queryType, simpleQueryType, inferType} = require("./pgsql")
+const {insertType, listType, getItem, getRelatedItems, getRelatedItemsFiltered, putType, patchType, queryType, simpleQueryType, inferType, deleteType, deleteRelations} = require("./pgsql")
 const drones = require("./drones")
 
 const EVENTS = process.env.BEEHIVE_ENABLE_EVENTS == "yes"
@@ -50,6 +50,8 @@ exports.BeehiveTypeDefs = `
     directive @beehiveRelationFilter(target_type_name: String!, target_field_name: String) on FIELD_DEFINITION
 
     directive @beehiveRelationTimeFilter(target_type_name: String!, target_field_name: String, timestamp_field_name: String) on FIELD_DEFINITION
+
+    directive @beehiveDelete(target_type_name: String, cascades: [CascadeLink!]) on FIELD_DEFINITION
 
     enum SortDirection {
         ASC
@@ -113,6 +115,22 @@ exports.BeehiveTypeDefs = `
         operator: Operator!
         value: String
         children: [QueryExpression!]
+    }
+
+    enum Status {
+        ok
+        error
+    }
+
+    type DeleteStatusResponse {
+        status: Status!
+        error: String
+    }
+
+    input CascadeLink {
+        target_type_name: String!
+        target_field_name: String!
+        isS3File: Boolean
     }
 
 `
@@ -607,7 +625,7 @@ class BeehiveRelationTimeFilterDirective extends SchemaDirectiveVisitor {
 
 }
 
-class beehiveRelationFilterDirective extends SchemaDirectiveVisitor {
+class BeehiveRelationFilterDirective extends SchemaDirectiveVisitor {
 
     visitFieldDefinition(field, details) {
         field.args = this.schema._typeMap._beehive_helper_._fields.relationFilter.args
@@ -633,6 +651,45 @@ class beehiveRelationFilterDirective extends SchemaDirectiveVisitor {
 
 }
 
+class BeehiveDeleteDirective extends SchemaDirectiveVisitor {
+
+    visitFieldDefinition(field, details) {
+        const schema = this.schema
+        const target_type_name = this.args.target_type_name
+        const cascades = this.args.cascades
+
+        field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            const pk = args[table_config.pk_column]
+            if(cascades) {
+                for(var i in cascades) {
+                    try {
+                        var cascade = cascades[i]
+                        console.log(cascade)
+                        var rel_table_config = schema._beehive.tables[cascade.target_type_name]
+                        deleteRelations(schema, rel_table_config, cascade.target_field_name, pk)
+                    } catch(e) {
+                        console.log(e)
+                    }
+                }
+            }
+            // do the delete
+            if(deleteType(schema, table_config, pk)) {
+                return {
+                    status: "ok",
+                }
+            } else {
+                return {
+                    status: "error",
+                    error: "Nothing deleted",
+                }
+            }
+        }
+
+    }
+
+}
+
 
 exports.BeehiveDirectives = {
     beehive: BeehiveDirective,
@@ -650,8 +707,9 @@ exports.BeehiveDirectives = {
     beehiveIndexed: BeehiveDirective,
     beehiveAssignmentType: BeehiveAssignmentTypeDirective,
     beehiveAssignmentFilter: BeehiveAssignmentFilterDirective,
-    beehiveRelationFilter: beehiveRelationFilterDirective,
+    beehiveRelationFilter: BeehiveRelationFilterDirective,
     beehiveRelationTimeFilter: BeehiveRelationTimeFilterDirective,
+    beehiveDelete: BeehiveDeleteDirective,
 };
 
 if (graphS3) {

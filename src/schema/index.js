@@ -7,13 +7,13 @@ const {BeehiveDirectives, BeehiveTypeDefs} = require("../hive")
 
 
 const logger = { log: e => console.log(e) }
-  
+
 
 exports.schema = makeExecutableSchema({
   typeDefs: [
     BeehiveTypeDefs,
 `
-    
+
     enum TypeOfThing {
         WOOD
         PLASTIC
@@ -121,6 +121,7 @@ exports.schema = makeExecutableSchema({
         matchThings(name: String, material: String, type: TypeOfThing, page: PaginationInput): ThingList @beehiveSimpleQuery(target_type_name: "Thing")
         getThing(thing_id: String!): Thing @beehiveGet(target_type_name: "Thing")
         relatedThings(page: PaginationInput): RelatedThingsList! @beehiveList(target_type_name: "RelatedThing")
+        getRelatedThing(rel_thing_id: ID): RelatedThing @beehiveGet(target_type_name: "RelatedThing")
 
         # assignment things
         getAssignments(page: PaginationInput): AssignmentList @beehiveList(target_type_name: "Assignment")
@@ -133,6 +134,13 @@ exports.schema = makeExecutableSchema({
         replaceThing(thing_id: ID!, thing: ThingInput!): Thing! @beehiveReplace(target_type_name: "Thing")
         newRelatedThing(relatedThing: RelatedThingInput): RelatedThing! @beehiveCreate(target_type_name: "RelatedThing")
         updateRelatedThing(rel_thing_id: ID!, relatedThing: RelatedThingInput!): RelatedThing! @beehiveUpdate(target_type_name: "RelatedThing")
+        deleteThing(thing_id: ID): DeleteStatusResponse @beehiveDelete(target_type_name: "Thing")
+        deleteThingCascading(thing_id: ID): DeleteStatusResponse @beehiveDelete(target_type_name: "Thing", cascades: [
+            {target_type_name: "RelatedThing", target_field_name: "thing", isS3File: false},
+            {target_type_name: "Observation", target_field_name: "thing", isS3File: false}
+        ])
+
+
 
         # assignments
         holder(holder: NamedInput!): Holder! @beehiveCreate(target_type_name: "Holder")
@@ -153,4 +161,3 @@ exports.schema = makeExecutableSchema({
   schemaDirectives: BeehiveDirectives,
   logger: logger,
 })
-

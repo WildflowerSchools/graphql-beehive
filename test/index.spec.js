@@ -111,6 +111,84 @@ describe('Beehive general suite', function(){
         mockserver.stop(function(){})
     })
 
+    describe('delete', function() {
+
+        it('make a thing and delete it', async function() {
+            const createQuery = `
+                    mutation {
+                      newThing(thing: {name: "testThingToDelete"}) {
+                        thing_id
+                      }
+                    }
+                `
+            var thing = await request(uri, createQuery)
+            expect(thing).to.not.equal(null)
+            expect(thing.newThing.thing_id).to.not.equal(null)
+            var deleteQuery = `
+                mutation {
+                    deleteThing(thing_id: "${thing.newThing.thing_id}") {
+                        status
+                        error
+                    }
+                }
+            `
+            var deleteResponse = await request(uri, deleteQuery)
+            expect(deleteResponse).to.not.equal(null)
+            expect(deleteResponse.deleteThing.status).to.not.equal(null)
+            expect(deleteResponse.deleteThing.status).to.equal("ok")
+        })
+    })
+
+    describe('delete cascading', function() {
+
+        it('make a thing and delete it', async function() {
+            const createQuery = `
+                    mutation {
+                      newThing(thing: {name: "testThingToDelete"}) {
+                        thing_id
+                      }
+                    }
+                `
+            var thing = await request(uri, createQuery)
+            expect(thing).to.not.equal(null)
+            expect(thing.newThing.thing_id).to.not.equal(null)
+
+            var relatedQuery = `
+                mutation {
+                  newRelatedThing(relatedThing: {name: "relatedThingToDelete", subject: "delete", thing: "${thing.newThing.thing_id}"}) {
+                        rel_thing_id
+                    }
+                }
+            `
+            var relResponse = await request(uri, relatedQuery)
+            expect(relResponse).to.not.equal(null)
+            expect(relResponse.newRelatedThing.rel_thing_id).to.not.equal(null)
+
+            var deleteQuery = `
+                mutation {
+                    deleteThingCascading(thing_id: "${thing.newThing.thing_id}") {
+                        status
+                        error
+                    }
+                }
+            `
+            var deleteResponse = await request(uri, deleteQuery)
+            expect(deleteResponse).to.not.equal(null)
+            expect(deleteResponse.deleteThingCascading.status).to.not.equal(null)
+            expect(deleteResponse.deleteThingCascading.status).to.equal("ok")
+
+            var getQuery = `
+                query {
+                    getRelatedThing(rel_thing_id: "${relResponse.newRelatedThing.rel_thing_id}") {
+                        rel_thing_id
+                    }
+                }
+            `
+            var getResponse = await request(uri, getQuery)
+            expect(getQuery.getRelatedThing).to.equal(undefined)
+        })
+    })
+
     describe('things', function() {
 
         it('assignments', async function() {
@@ -300,6 +378,7 @@ describe('Beehive general suite', function(){
         })
 
         it('list things', async function() {
+            // this can fail if the delete things fail
             var query = `
                     query {
                       things {
