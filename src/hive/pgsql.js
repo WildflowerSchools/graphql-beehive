@@ -200,6 +200,20 @@ exports.getRelatedItems = async function(schema, table_config, target_field_name
     return rows
 }
 
+
+exports.deleteRelations = async function(schema, table_config, target_field_name, value) {
+    var things = await pool.query(`DELETE FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}'`)
+
+    if(things.rowCount) {
+        return things.rowCount
+    } else {
+        console.log(`looking in ${schema._beehive.schema_name}.${table_config.table_name} to delete ${target_field_name} = ${value} but didn't find it`)
+        console.log(things)
+    }
+    return null
+}
+
+
 exports.getRelatedItemsFiltered = async function(schema, table_config, target_field_name, value, query, pageInfo) {
     var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}' AND ${renderQuery(query)}${renderPageInfo(pageInfo)}`
     var things = await pool.query(query)
@@ -339,4 +353,17 @@ exports.patchType = async function(schema, table_config, pk, input) {
         current[field_name] = input[field_name]
     }
     return exports.putType(schema, table_config, pk, current)
+}
+
+
+exports.deleteType = async function(schema, table_config, pk) {
+    var things = await pool.query(`DELETE FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`, [pk])
+
+    if(things.rowCount) {
+        return things.rowCount
+    } else {
+        console.log(`looking in ${schema._beehive.schema_name}.${table_config.table_name} to delete ${table_config.pk_column} = ${pk} but didn't find it`)
+        console.log(things)
+    }
+    return null
 }
