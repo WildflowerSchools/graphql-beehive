@@ -1,6 +1,6 @@
 {
     "name": "@wildflowerschools/graphql-beehive",
-    "version": "0.9.2",
+    "version": "0.9.5",
     "description": "A set of tools for working with PostgreSQL and GraphQL",
     "main": "src/index.js",
     "repository": "https://github.com/WildflowerSchools/graphql-beehive",
@@ -15,7 +15,7 @@
     "author": "optimuspaul",
     "license": "MIT",
     "dependencies": {
-        "@wildflowerschools/graphql-s3-directive": "^0.3.0",
+        "@wildflowerschools/graphql-s3-directive": "^0.3.1",
         "axios": "^0.18.0",
         "graphql": "^14.0.2",
         "graphql-custom-types": "^1.4.0",
