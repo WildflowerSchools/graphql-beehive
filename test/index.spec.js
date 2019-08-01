@@ -133,6 +133,7 @@ describe('Beehive general suite', function(){
                 }
             `
             var deleteResponse = await request(uri, deleteQuery)
+            console.log(deleteResponse)
             expect(deleteResponse).to.not.equal(null)
             expect(deleteResponse.deleteThing.status).to.not.equal(null)
             expect(deleteResponse.deleteThing.status).to.equal("ok")
@@ -549,6 +550,10 @@ describe('Beehive general suite', function(){
                                     name
                                 }
                             }
+                            page_info {
+                                count
+                                cursor
+                            }
                         }
                     }
                 `
@@ -556,8 +561,32 @@ describe('Beehive general suite', function(){
             console.log(things)
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(1)
+            expect(things.findThings.page_info.count).to.equal(1)
             expect(things.findThings.data[0].thing_id).to.not.equal(null)
             expect(things.findThings.data[0].name).to.equal("Episode 8 - Star Wars: The Last Jedi")
+            query = `
+                    query {
+                        findThings(query: {field: "name", operator: LIKE, value: "%Star Wars%"}, page: {cursor: "${things.findThings.page_info.cursor}", max: 1, sort: [{field: "name", direction: DESC}]}) {
+                            data {
+                                ... on Thing {
+                                    thing_id
+                                    name
+                                }
+                            }
+                            page_info {
+                                count
+                                cursor
+                            }
+                        }
+                    }
+                `
+            things = await request(uri, query)
+            console.log(things)
+            expect(things.findThings).to.not.equal(null)
+            expect(things.findThings.data.length).to.equal(1)
+            expect(things.findThings.page_info.count).to.equal(1)
+            expect(things.findThings.data[0].thing_id).to.not.equal(null)
+            expect(things.findThings.data[0].name).to.equal("Episode 7 - Star Wars: The Force Awakens")
         })
 
         it('matchThings', async function() {

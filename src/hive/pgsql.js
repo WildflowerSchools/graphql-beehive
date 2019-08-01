@@ -173,7 +173,7 @@ exports.listType = async function(schema, table_config, pageInfo) {
     for(var row of things.rows) {
         rows.push(applySystem(row))
     }
-    return rows
+    return {data: rows, page_info: getPageInfoResult(pageInfo, rows.length)}
 }
 
 
@@ -233,13 +233,46 @@ function renderPageInfo(pageInfo) {
                 sorts.push(`data->>'${sort.field}' ${sort.direction ? sort.direction : 'ASC'}`)
             }
             result += ` ORDER BY ${sorts.join(", ")}`
+        } else {
+            // order by creation date by default, we do this so things are predictable with pagination if no sorting is specified
+            result += ` ORDER BY timestamp ASC`
         }
         if(pageInfo.max) {
             result += ` LIMIT ${pageInfo.max}`
         }
         if(pageInfo.cursor) {
-            // TODO - need to research best practice for this, assumes this value is returned by a supported query.
+            result += ` ${decodeCursor(pageInfo.cursor)}`
         }
+    }
+    return result
+}
+
+
+function decodeCursor(cursor) {
+    let buff = Buffer.from(cursor, 'base64')
+    return buff.toString('ascii')
+}
+
+
+function encodeCursor(offset) {
+    let buff = Buffer.from(`OFFSET ${offset}`, 'ascii')
+    return buff.toString('base64')
+}
+
+
+function getPageInfoResult(pageInfo, count, total) {
+    var nextOffset = 0
+    if(pageInfo && pageInfo.cursor) {
+        var poff = Number(decodeCursor(pageInfo.cursor).substring(7))
+        nextOffset += poff
+    }
+    nextOffset += count
+    const result = {
+        total: total,
+        count: count,
+        max: pageInfo ? pageInfo.max : null,
+        sort: pageInfo ? pageInfo.sort : null,
+        cursor: encodeCursor(nextOffset),
     }
     return result
 }
@@ -287,7 +320,7 @@ exports.queryType = async function(schema, table_config, query, pageInfo) {
     for(var row of things.rows) {
         rows.push(applySystem(row))
     }
-    return rows
+    return {data: rows, page_info: getPageInfoResult(pageInfo, rows.length)}
 }
 
 exports.simpleQueryType = async function(schema, table_config, query, pageInfo) {
@@ -301,8 +334,7 @@ exports.simpleQueryType = async function(schema, table_config, query, pageInfo) 
     for(var row of things.rows) {
         rows.push(applySystem(row))
     }
-    // console.log(rows)
-    return rows
+    return {data: rows, page_info: getPageInfoResult(pageInfo, rows.length)}
 }
 
 

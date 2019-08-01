@@ -53,6 +53,8 @@ exports.BeehiveTypeDefs = `
 
     directive @beehiveDelete(target_type_name: String, cascades: [CascadeLink!]) on FIELD_DEFINITION
 
+    directive @beehiveDeleteList(target_type_name: String, cascades: [CascadeLink!]) on FIELD_DEFINITION
+
     enum SortDirection {
         ASC
         DESC
@@ -79,7 +81,7 @@ exports.BeehiveTypeDefs = `
         count: Int
         max: Int
         cursor: String
-        sort: Sort
+        sort: [Sort!]
     }
 
     type System {
@@ -370,7 +372,7 @@ class BeehiveListDirective extends SchemaDirectiveVisitor {
 
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
-            return {data: listType(schema, table_config, args.page)}
+            return listType(schema, table_config, args.page)
         }
     }
 
@@ -384,8 +386,7 @@ class BeehiveQueryDirective extends SchemaDirectiveVisitor {
 
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
-            var rows = queryType(schema, table_config, args.query, args.page)
-            return {data: rows}
+            return queryType(schema, table_config, args.query, args.page)
         }
     }
 
@@ -407,8 +408,7 @@ class BeehiveSimpleQueryDirective extends SchemaDirectiveVisitor {
                 }
             }
 
-            var rows = simpleQueryType(schema, table_config, query, args.page)
-            return {data: rows}
+            return simpleQueryType(schema, table_config, query, args.page)
         }
     }
 
@@ -651,6 +651,34 @@ class BeehiveRelationFilterDirective extends SchemaDirectiveVisitor {
 
 }
 
+async function performDelete(cascades, schema, table_config, pk) {
+    if(cascades) {
+        for(var i in cascades) {
+            try {
+                var cascade = cascades[i]
+                console.log(cascade)
+                var rel_table_config = schema._beehive.tables[cascade.target_type_name]
+                deleteRelations(schema, rel_table_config, cascade.target_field_name, pk)
+            } catch(e) {
+                console.log(e)
+            }
+        }
+    }
+    // do the delete
+    if(deleteType(schema, table_config, pk)) {
+        return {
+            status: "ok",
+        }
+    } else {
+        return {
+            status: "error",
+            error: "Nothing deleted",
+        }
+    }
+
+}
+
+
 class BeehiveDeleteDirective extends SchemaDirectiveVisitor {
 
     visitFieldDefinition(field, details) {
@@ -661,34 +689,33 @@ class BeehiveDeleteDirective extends SchemaDirectiveVisitor {
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
             const pk = args[table_config.pk_column]
-            if(cascades) {
-                for(var i in cascades) {
-                    try {
-                        var cascade = cascades[i]
-                        console.log(cascade)
-                        var rel_table_config = schema._beehive.tables[cascade.target_type_name]
-                        deleteRelations(schema, rel_table_config, cascade.target_field_name, pk)
-                    } catch(e) {
-                        console.log(e)
-                    }
-                }
-            }
-            // do the delete
-            if(deleteType(schema, table_config, pk)) {
-                return {
-                    status: "ok",
-                }
-            } else {
-                return {
-                    status: "error",
-                    error: "Nothing deleted",
-                }
-            }
+            return performDelete(cascades, schema, table_config, pk)
         }
 
     }
 
 }
+
+
+// untested code
+class BeehiveDeleteListDirective extends SchemaDirectiveVisitor {
+
+    visitFieldDefinition(field, details) {
+        const schema = this.schema
+        const target_type_name = this.args.target_type_name
+        const cascades = this.args.cascades
+
+        field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            const pks = args[table_config.pk_column]
+            for(var pk in pks) {
+                performDelete(cascades, schema, table_config, pk)
+            }
+        }
+
+    }
+}
+// ^^ untested code
 
 
 exports.BeehiveDirectives = {
@@ -710,6 +737,7 @@ exports.BeehiveDirectives = {
     beehiveRelationFilter: BeehiveRelationFilterDirective,
     beehiveRelationTimeFilter: BeehiveRelationTimeFilterDirective,
     beehiveDelete: BeehiveDeleteDirective,
+    beehiveDeleteList: BeehiveDeleteListDirective
 };
 
 if (graphS3) {
