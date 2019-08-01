@@ -215,7 +215,7 @@ exports.deleteRelations = async function(schema, table_config, target_field_name
 
 
 exports.getRelatedItemsFiltered = async function(schema, table_config, target_field_name, value, query, pageInfo) {
-    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}' AND ${renderQuery(query)}${renderPageInfo(pageInfo)}`
+    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}' ${query ? "AND" : "" } ${renderQuery(query)}${renderPageInfo(pageInfo)}`
     var things = await pool.query(query)
     var rows = []
     for(var row of things.rows) {
@@ -291,28 +291,31 @@ const opMap = {
 
 
 function renderQuery(query) {
-    if(["EQ", "NE", "LIKE", "RE", "IN", "LT", "GT", "LTE", "GTE"].includes(query.operator)) {
-        // simple query with no child-elements
-        // TODO - add support for numeric values
-        return `data->>'${query.field}' ${opMap[query.operator]} '${query.value}'`
-    } else if(query.operator == "ISNULL") {
-        return `(NOT(data ? '${query.field}') OR (data ? '${query.field}') is NULL)`
-    } else if(query.operator == "NOTNULL") {
-        return `((data ? '${query.field}') AND (data ? '${query.field}') <> NULL)`
-    } else {
-        // console.log(query)
-        // a boolean expression with children
-        var childrenSQL = []
-        for(var child of query.children) {
-            childrenSQL.push(renderQuery(child))
+    if(query) {
+        if(["EQ", "NE", "LIKE", "RE", "IN", "LT", "GT", "LTE", "GTE"].includes(query.operator)) {
+            // simple query with no child-elements
+            // TODO - add support for numeric values
+            return `data->>'${query.field}' ${opMap[query.operator]} '${query.value}'`
+        } else if(query.operator == "ISNULL") {
+            return `(NOT(data ? '${query.field}') OR (data ? '${query.field}') is NULL)`
+        } else if(query.operator == "NOTNULL") {
+            return `((data ? '${query.field}') AND (data ? '${query.field}') <> NULL)`
+        } else {
+            // console.log(query)
+            // a boolean expression with children
+            var childrenSQL = []
+            for(var child of query.children) {
+                childrenSQL.push(renderQuery(child))
+            }
+            const joinBit = ` ${query.operator} `
+            return `(${childrenSQL.join(joinBit)})`
         }
-        const joinBit = ` ${query.operator} `
-        return `(${childrenSQL.join(joinBit)})`
     }
+    return ""
 }
 
 exports.queryType = async function(schema, table_config, query, pageInfo) {
-    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${renderQuery(query)}${renderPageInfo(pageInfo)}`
+    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}  ${query ? "WHERE" : "" } ${renderQuery(query)}${renderPageInfo(pageInfo)}`
     console.log(sql)
     // var explained = await pool.query(`EXPLAIN ${sql}`)
     var things = await pool.query(sql)
