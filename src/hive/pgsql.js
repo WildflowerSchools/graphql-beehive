@@ -235,7 +235,7 @@ function renderPageInfo(pageInfo) {
             result += ` ORDER BY ${sorts.join(", ")}`
         } else {
             // order by creation date by default, we do this so things are predictable with pagination if no sorting is specified
-            result += ` ORDER BY timestamp ASC`
+            result += ` ORDER BY created ASC`
         }
         if(pageInfo.max) {
             result += ` LIMIT ${pageInfo.max}`
