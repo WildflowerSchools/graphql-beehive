@@ -104,6 +104,30 @@ exports.schema = makeExecutableSchema({
         page_info: PageInfo!
     }
 
+    type NestList {
+        data: [Nest!]
+        page_info: PageInfo!
+    }
+
+    type Nest @beehiveTable(table_name: "nests") {
+        nest_id: ID!
+        occupant: Occupant!
+    }
+
+    type Occupant {
+        name: String
+        age: Int
+    }
+
+    input NestInput {
+        occupant: OccupantInput!
+    }
+
+    input OccupantInput {
+        name: String
+        age: Int
+    }
+
     input NamedInput {
         name: String
     }
@@ -127,9 +151,13 @@ exports.schema = makeExecutableSchema({
         getAssignments(page: PaginationInput): AssignmentList @beehiveList(target_type_name: "Assignment")
         # get holder
         getHolder(holder_id: ID): Holder @beehiveGet(target_type_name: "Holder")
+
+        # nested objects
+        findNests(query: QueryExpression!, page: PaginationInput): NestList @beehiveQuery(target_type_name: "Nest")
     }
 
     type Mutation {
+        makeNest(nest: NestInput): Nest! @beehiveCreate(target_type_name: "Nest")
         newThing(thing: ThingInput): Thing! @beehiveCreate(target_type_name: "Thing")
         replaceThing(thing_id: ID!, thing: ThingInput!): Thing! @beehiveReplace(target_type_name: "Thing")
         newRelatedThing(relatedThing: RelatedThingInput): RelatedThing! @beehiveCreate(target_type_name: "RelatedThing")

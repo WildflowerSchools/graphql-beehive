@@ -295,6 +295,9 @@ function renderQuery(query) {
         if(["EQ", "NE", "LIKE", "RE", "IN", "LT", "GT", "LTE", "GTE"].includes(query.operator)) {
             // simple query with no child-elements
             // TODO - add support for numeric values
+            if(query.field.indexOf(".") >= 0) {
+                return `data #>>'{${query.field.split(".").join(",")}}' ${opMap[query.operator]} '${query.value}'`
+            }
             return `data->>'${query.field}' ${opMap[query.operator]} '${query.value}'`
         } else if(query.operator == "ISNULL") {
             return `(NOT(data ? '${query.field}') OR (data ? '${query.field}') is NULL)`
@@ -316,7 +319,7 @@ function renderQuery(query) {
 
 exports.queryType = async function(schema, table_config, query, pageInfo) {
     var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}  ${query ? "WHERE" : "" } ${renderQuery(query)}${renderPageInfo(pageInfo)}`
-    console.log(sql)
+    // console.log(sql)
     // var explained = await pool.query(`EXPLAIN ${sql}`)
     var things = await pool.query(sql)
     var rows = []

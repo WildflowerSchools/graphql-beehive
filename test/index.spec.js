@@ -753,6 +753,48 @@ describe('Beehive general suite', function(){
 
         })
 
+
+        it('nestedSearch', async function() {
+            var query = `
+                    mutation {
+                        first: makeNest(nest: {occupant: {name: "duck", age: 2}}) {
+                            nest_id
+                        }
+
+                        second: makeNest(nest: {occupant: {name: "grey duck", age: 2}}) {
+                            nest_id
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            query = `
+                    query {
+                        findNests(query: {field: "nest_id", operator: NE, value: ""}) {
+                            data {
+                                nest_id
+                                occupant {
+                                    name
+                                }
+                            }
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            console.log(JSON.stringify(things))
+            query = `
+                    query {
+                        findNests(query: {field: "occupant.name", operator: EQ, value: "grey duck"}) {
+                            data {
+                                nest_id
+                            }
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            expect(things.findNests).to.not.equal(null)
+            expect(things.findNests.data.length).to.equal(1)
+        })
+
     })
 
 })
