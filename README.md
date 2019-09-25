@@ -101,6 +101,8 @@ Name                       | Default
 `BEEHIVE_ENABLE_EVENTS`    | false
 `BEEHIVE_STREAM`           | beehive_stream
 `BEEHIVE_PARTITION_KEY`    | beehive_partition_key
+`DEBUG`                    | false
+`BEEHIVE_STREAM_ENDPOINT`  | null
 
 Run `node try-events.js` to run quick tests
 

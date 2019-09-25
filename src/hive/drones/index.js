@@ -1,10 +1,16 @@
-const axios = require("axios")
-
 const AWS = require('aws-sdk')
-var client = new AWS.Kinesis();
 
 const BEEHIVE_STREAM = process.env.BEEHIVE_STREAM ? process.env.BEEHIVE_STREAM : "beehive_stream"
 const BEEHIVE_PARTITION_KEY = process.env.BEEHIVE_PARTITION_KEY ? process.env.BEEHIVE_PARTITION_KEY : "beehive_partition_key"
+
+const DEBUG = process.env.DEBUG == "yes"
+
+if (process.env.BEEHIVE_STREAM_ENDPOINT) {
+    var aws_params = {endpoint: process.env.BEEHIVE_STREAM_ENDPOINT}
+    var client = new AWS.Kinesis(aws_params);
+} else {
+    var client = new AWS.Kinesis();
+}
 
 
 class Event {
@@ -31,15 +37,21 @@ class Event {
 
 
 exports.sendEvent = async function(event) {
+    // console.log(event);
     client.putRecord({
         PartitionKey: event.partition_key,
         StreamName: event.stream_name,
         Data: JSON.stringify(event.json())
     }, function(err, data) {
         if (err) {
-            console.log(err, err.stack);
+            console.log(err);
+            if (DEBUG) {
+                console.log(err.stack);
+            }
         } else {
-            console.log(data);
+            if (DEBUG) {
+                console.log(data)
+            }
         }
     });
 }
