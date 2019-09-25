@@ -7,13 +7,6 @@ const {server} = require("./testsupport")
 
 const uri = "http://localhost:4423/graphql"
 
-if (process.env.BEEHIVE_STREAM_ENDPOINT) {
-    var AWS = require('aws-sdk')
-    var aws_params = {endpoint: process.env.BEEHIVE_STREAM_ENDPOINT}
-    var kinesis = new AWS.Kinesis(aws_params);
-}
-// var kinesis = new AWS.Kinesis({endpoint: 'http://localhost:4567'});
-
 process.env.PGPASSWORD = "iamaninsecurepassword"
 process.env.PGUSER = "beehive_user"
 process.env.PGDATABASE = "beehive-tests-integrated"
@@ -22,6 +15,17 @@ process.env.PGPORT = "5432"
 
 var dbContainer
 
+if (process.env.BEEHIVE_MOCK_STREAM == "yes") {
+    var kinesalite = require('kinesalite'),
+    kinesaliteServer = kinesalite()
+    kinesaliteServer.listen(4567, function(err) {
+        if (err) throw err
+        console.log('Kinesalite started on port 4567')
+    })
+    const AWS = require('aws-sdk');
+    kinesis_mock = new AWS.Kinesis({endpoint: "http://localhost:4567"});
+    kinesis_mock.createStream({StreamName: "beehive_stream", ShardCount: 1}, console.log)
+}
 
 
 before(async function() {
@@ -71,16 +75,6 @@ before(async function() {
         child.destroy()
         throw Error("postgres didn't start")
     })()
-
-    if (process.env.BEEHIVE_STREAM_ENDPOINT) {
-        var kinesalite = require('kinesalite'),
-        kinesaliteServer = kinesalite()
-        kinesaliteServer.listen(4567, function(err) {
-            if (err) throw err
-            console.log('Kinesalite started on port 4567')
-        })
-        kinesis.createStream({StreamName: "beehive_stream", ShardCount: 1}, console.log)
-    }
 })
 
 

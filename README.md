@@ -98,11 +98,11 @@ Environment variables:
 Name                       | Default
 ---------------------------|-----------
 `AWS_REGION`               | us-east-1
-`BEEHIVE_ENABLE_EVENTS`    | false
-`BEEHIVE_STREAM`           | beehive_stream
-`BEEHIVE_PARTITION_KEY`    | beehive_partition_key
 `DEBUG`                    | false
-`BEEHIVE_STREAM_ENDPOINT`  | null
+`BEEHIVE_ENABLE_EVENTS`    | false
+`BEEHIVE_MOCK_STREAM`      | false
+`BEEHIVE_PARTITION_KEY`    | beehive_partition_key
+`BEEHIVE_STREAM`           | beehive_stream
 
 Run `node try-events.js` to run quick tests
 

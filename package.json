@@ -5,7 +5,7 @@
     "main": "src/index.js",
     "repository": "https://github.com/WildflowerSchools/graphql-beehive",
     "scripts": {
-        "test": "BEEHIVE_ENABLE_EVENTS=yes BEEHIVE_STREAM_ENDPOINT=http://localhost:4567 mocha --recursive --timeout 30000",
+        "test": "AWS_REGION=us-east-1 BEEHIVE_ENABLE_EVENTS=yes BEEHIVE_MOCK_STREAM=yes mocha --recursive --timeout 30000",
         "test-events": "DEBUG=yes AWS_REGION=us-east-1 BEEHIVE_ENABLE_EVENTS=yes mocha --recursive --timeout 30000",
         "coverage": "node_modules/.bin/nyc npm test",
         "start": "node_modules/.bin/nodemon test/test-server.js"

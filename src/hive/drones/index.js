@@ -5,11 +5,11 @@ const BEEHIVE_PARTITION_KEY = process.env.BEEHIVE_PARTITION_KEY ? process.env.BE
 
 const DEBUG = process.env.DEBUG == "yes"
 
-if (process.env.BEEHIVE_STREAM_ENDPOINT) {
-    var aws_params = {endpoint: process.env.BEEHIVE_STREAM_ENDPOINT}
-    var client = new AWS.Kinesis(aws_params);
+var client
+if (process.env.BEEHIVE_MOCK_STREAM == "yes") {
+    client = new AWS.Kinesis({endpoint: "http://localhost:4567"});
 } else {
-    var client = new AWS.Kinesis();
+    client = new AWS.Kinesis();
 }
 
 
