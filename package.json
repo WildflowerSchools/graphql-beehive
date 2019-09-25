@@ -5,7 +5,8 @@
     "main": "src/index.js",
     "repository": "https://github.com/WildflowerSchools/graphql-beehive",
     "scripts": {
-        "test": "BEEHIVE_ENABLE_EVENTS=yes PROTON_PACK_STREAM_URI=http://localhost:1111/streams/fakenews mocha --recursive --timeout 30000",
+        "test": "BEEHIVE_ENABLE_EVENTS=no mocha --recursive --timeout 30000",
+        "test-events": "AWS_REGION=us-east-1 BEEHIVE_ENABLE_EVENTS=yes mocha --recursive --timeout 30000",
         "coverage": "node_modules/.bin/nyc npm test",
         "start": "node_modules/.bin/nodemon test/test-server.js"
     },
@@ -16,6 +17,7 @@
     "license": "MIT",
     "dependencies": {
         "@wildflowerschools/graphql-s3-directive": "^0.3.0",
+        "aws-sdk": "^2.535.0",
         "axios": "^0.18.0",
         "graphql": "^14.0.2",
         "graphql-custom-types": "^1.4.0",
