@@ -3,8 +3,6 @@ const AWS = require('aws-sdk')
 const BEEHIVE_STREAM = process.env.BEEHIVE_STREAM ? process.env.BEEHIVE_STREAM : "beehive_stream"
 const BEEHIVE_PARTITION_KEY = process.env.BEEHIVE_PARTITION_KEY ? process.env.BEEHIVE_PARTITION_KEY : "beehive_partition_key"
 
-const DEBUG = process.env.DEBUG == "yes"
-
 var client
 if (process.env.BEEHIVE_MOCK_STREAM == "yes") {
     client = new AWS.Kinesis({endpoint: "http://localhost:4567"});
@@ -38,15 +36,15 @@ class Event {
 
 exports.sendEvent = async function(event) {
     // console.log(event);
+    const DEBUG = process.env.DEBUG == "yes"
     client.putRecord({
         PartitionKey: event.partition_key,
         StreamName: event.stream_name,
         Data: JSON.stringify(event.json())
     }, function(err, data) {
         if (err) {
-            console.log(err);
             if (DEBUG) {
-                console.log(err.stack);
+                console.error(err.stack);
             }
         } else {
             if (DEBUG) {

@@ -99,6 +99,14 @@ describe('Beehive general suite', function() {
 
     describe('delete', function() {
 
+        before(async function() {
+            process.env.DEBUG = "yes"
+        })
+
+        after(async function() {
+            process.env.DEBUG = "no"
+        })
+
         it('make a thing and delete it', async function() {
             const createQuery = `
                     mutation {
