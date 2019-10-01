@@ -4,8 +4,6 @@ const expect = require('chai').expect
 const { Pool } = require('pg')
 const pool = new Pool()
 const {server} = require("./testsupport")
-const ServerMock = require("mock-http-server");
-
 
 const uri = "http://localhost:4423/graphql"
 
@@ -17,6 +15,17 @@ process.env.PGPORT = "5432"
 
 var dbContainer
 
+if (process.env.BEEHIVE_MOCK_STREAM == "yes") {
+    var kinesalite = require('kinesalite'),
+    kinesaliteServer = kinesalite()
+    kinesaliteServer.listen(4567, function(err) {
+        if (err) throw err
+        console.log('Kinesalite started on port 4567')
+    })
+    const AWS = require('aws-sdk');
+    kinesis_mock = new AWS.Kinesis({endpoint: "http://localhost:4567"});
+    kinesis_mock.createStream({StreamName: "beehive_stream", ShardCount: 1}, console.log)
+}
 
 
 before(async function() {
@@ -66,7 +75,6 @@ before(async function() {
         child.destroy()
         throw Error("postgres didn't start")
     })()
-
 })
 
 
@@ -76,12 +84,8 @@ after(async function(){
 })
 
 
-
-describe('Beehive general suite', function(){
-
-
+describe('Beehive general suite', function() {
     var expressApp
-    var mockserver = new ServerMock({ host: "localhost", port: 1111 })
 
     before(async function() {
         // setup an apollo-server-express app and run it
@@ -93,25 +97,15 @@ describe('Beehive general suite', function(){
         expressApp.close()
     })
 
-    beforeEach(async function() {
-        mockserver.start(function(){})
-        mockserver.on({
-            method: 'POST',
-            path: '/streams/fakenews',
-            reply: {
-                status:  200,
-                headers: { "content-type": "application/json" },
-                body:    JSON.stringify({ status: "ok" })
-            }
-        });
-    })
-
-
-    afterEach(async function() {
-        mockserver.stop(function(){})
-    })
-
     describe('delete', function() {
+
+        before(async function() {
+            process.env.DEBUG = "yes"
+        })
+
+        after(async function() {
+            process.env.DEBUG = "no"
+        })
 
         it('make a thing and delete it', async function() {
             const createQuery = `
@@ -316,7 +310,6 @@ describe('Beehive general suite', function(){
             expect(thing.newThing.thing_id).to.not.equal(null)
             expect(thing.newThing.name).to.equal("thing")
             expect(thing.newThing.system.created).to.not.equal(null)
-            expect(mockserver.requests().length).to.not.equal(0)
         })
 
         it('replaces a thing', async function() {
@@ -723,14 +716,8 @@ describe('Beehive general suite', function(){
             expect(getThing.getThing.observations[0].data).to.equal("data 3")
 
         })
-
     })
-
 })
-
-
-
-
 
 
 describe('Beehive no schema test', function(){
@@ -740,8 +727,5 @@ describe('Beehive no schema test', function(){
 
             expect(function() { require("../src/schema/no_schema")}).to.throw(TypeError)
         })
-
-
     })
-
 })
