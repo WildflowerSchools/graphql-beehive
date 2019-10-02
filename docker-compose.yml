@@ -24,7 +24,7 @@ services:
       PGDATABASE: beehive
       PGHOST: postgres
       BEEHIVE_ENABLE_EVENTS: "yes"
-      PROTON_PACK_STREAM_URI: http://127.0.0.1:5000/streams/venkman
+      AWS_REGION: us-east-1
     ports:
       - 4022:4000
     command: "scripts/setup-and-startup.sh"

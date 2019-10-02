@@ -91,6 +91,41 @@ The `beehiveGet` directive associates a get resolver with the query. You need to
 The `beehiveCreate` directive attaches an insert resolver to the mutation. You need to set the type name so Beehive can discover the correct table to insert into.
 
 
+### Events
+
+Environment variables:
+
+Name                       | Default
+---------------------------|-----------
+`AWS_REGION`               | us-east-1
+`DEBUG`                    | false
+`BEEHIVE_ENABLE_EVENTS`    | false
+`BEEHIVE_MOCK_STREAM`      | false
+`BEEHIVE_PARTITION_KEY`    | beehive_partition_key
+`BEEHIVE_STREAM`           | beehive_stream
+
+Run `node try-events.js` to run quick tests
+
+
+### Running Tests
+
+This will run the tests without writing events to kinesis:
+
+```bash
+npm test
+```
+
+#### Testing Events
+
+First create a kinesis stream named `beehive_stream`.
+
+This will run the tests and write events to kinesis:
+
+```bash
+npm run test-events
+```
+
+
 ### TODOs
 
 - More tests, coverage is adequate but could be better, especially for failure cases
@@ -100,6 +135,7 @@ The `beehiveCreate` directive attaches an insert resolver to the mutation. You n
 - Update mutations are not yet supported
 - Delete mutations are not yet supported
 - Better logic in the database provisioning, right now it just blindly does a "create if not exists", but maybe needs to be more resilient?
+- Implement event stream listener
 
 ## Contributing
 
