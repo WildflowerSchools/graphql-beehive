@@ -394,6 +394,34 @@ exports.patchType = async function(schema, table_config, pk, input) {
 }
 
 
+exports.appendToListField = async function(schema, table_config, object_id, target_field, input) {
+    var current = await exports.getItem(schema, table_config, object_id)
+    if(!current) {
+        throw Error(`Object of type ${table_config.type.name} with primary key ${object_id} not found`)
+    }
+    if(typeof input == "string") {
+        input = [input]
+    }
+    var vector = current[target_field]
+    input = input.filter(function(el) { return !vector.includes(el) })
+    current[target_field] = vector.concat(input)
+    return exports.putType(schema, table_config, object_id, current)
+}
+
+
+exports.deleteFromListField = async function(schema, table_config, object_id, target_field, input) {
+    var current = await exports.getItem(schema, table_config, object_id)
+    if(!current) {
+        throw Error(`Object of type ${table_config.type.name} with primary key ${object_id} not found`)
+    }
+    if(typeof input == "string") {
+        input = [input]
+    }
+    current[target_field] = current[target_field].filter(function(el) { return !input.includes(el) })
+    return exports.putType(schema, table_config, object_id, current)
+}
+
+
 exports.deleteType = async function(schema, table_config, pk) {
     var things = await pool.query(`DELETE FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`, [pk])
 

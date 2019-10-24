@@ -18,10 +18,12 @@ const { ensureDatabase } = require('../src/hive');
 const server = new ApolloServer({
     schema,
     formatError: error => {
+        console.log("= error    =============================================");
         console.log(error);
         return error;
     },
     formatResponse: response => {
+        console.log("= response =============================================");
         console.log(response);
         return response;
     },

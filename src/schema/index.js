@@ -33,6 +33,7 @@ exports.schema = makeExecutableSchema({
         related: [RelatedThing!] @beehiveRelation(target_type_name: "RelatedThing", target_field_name: "thing")
         dimensions: [Float!]
         observations: [Observation!] @beehiveRelationTimeFilter(target_type_name: "Observation", target_field_name: "thing", timestamp_field_name: "timestamp")
+        tags: [String!]
     }
 
     input ThingInput {
@@ -40,6 +41,7 @@ exports.schema = makeExecutableSchema({
         dimensions: [Float!]
         material: String
         type: TypeOfThing
+        tags: [String!]
     }
 
     type RelatedThing @beehiveTable(table_name: "rel_things") {
@@ -168,8 +170,6 @@ exports.schema = makeExecutableSchema({
             {target_type_name: "Observation", target_field_name: "thing", isS3File: false}
         ])
 
-
-
         # assignments
         holder(holder: NamedInput!): Holder! @beehiveCreate(target_type_name: "Holder")
         held(held: NamedInput!): Held! @beehiveCreate(target_type_name: "Held")
@@ -177,6 +177,10 @@ exports.schema = makeExecutableSchema({
 
         # time filtering
         observe(observation: ObservationInput): Observation! @beehiveCreate(target_type_name: "Observation")
+
+        # tag team, back again
+        tagThing(thing_id: ID!, tags: [String!]!): Thing! @beehiveListFieldAppend(target_type_name: "Thing", field_name: "tags", input_field_name: "tags")
+        untagThing(thing_id: ID!, tags: [String!]!): Thing! @beehiveListFieldDelete(target_type_name: "Thing", field_name: "tags", input_field_name: "tags")
     }
 
     schema @beehive(schema_name: "beehive_tests") {

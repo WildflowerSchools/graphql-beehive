@@ -1,5 +1,5 @@
 const {SchemaDirectiveVisitor} = require('graphql-tools')
-const {insertType, listType, getItem, getRelatedItems, getRelatedItemsFiltered, putType, patchType, queryType, simpleQueryType, inferType, deleteType, deleteRelations} = require("./pgsql")
+const {insertType, listType, getItem, getRelatedItems, getRelatedItemsFiltered, putType, patchType, queryType, simpleQueryType, inferType, deleteType, deleteRelations, appendToListField, deleteFromListField} = require("./pgsql")
 const drones = require("./drones")
 
 const EVENTS = process.env.BEEHIVE_ENABLE_EVENTS == "yes"
@@ -26,6 +26,10 @@ exports.BeehiveTypeDefs = `
     directive @beehiveCreate(target_type_name: String!, s3_file_fields: [String!]) on FIELD_DEFINITION
 
     directive @beehiveUpdate(target_type_name: String!, s3_file_fields: [String!]) on FIELD_DEFINITION
+
+    directive @beehiveListFieldAppend(target_type_name: String!, field_name: String!, input_field_name: String) on FIELD_DEFINITION
+
+    directive @beehiveListFieldDelete(target_type_name: String!, field_name: String!, input_field_name: String) on FIELD_DEFINITION
 
     directive @beehiveReplace(target_type_name: String!, s3_file_fields: [String!]) on FIELD_DEFINITION
 
@@ -651,6 +655,38 @@ class BeehiveRelationFilterDirective extends SchemaDirectiveVisitor {
 
 }
 
+class BeehiveListFieldAppendDirective extends SchemaDirectiveVisitor {
+
+    visitFieldDefinition(field, details) {
+        const schema = this.schema
+        const target_type_name = this.args.target_type_name
+        const field_name = this.args.field_name
+        const input_field_name = this.args.input_field_name ? this.args.input_field_name : this.args.field_name
+        field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            var input = args[input_field_name]
+            return appendToListField(schema, table_config, args[table_config.pk_column], field_name, input)
+        }
+    }
+
+}
+class BeehiveListFieldDeleteDirective extends SchemaDirectiveVisitor {
+
+    visitFieldDefinition(field, details) {
+        const schema = this.schema
+        const target_type_name = this.args.target_type_name
+        const field_name = this.args.field_name
+        const input_field_name = this.args.input_field_name ? this.args.input_field_name : this.args.field_name
+        field.resolve = async function (obj, args, context, info) {
+            const table_config = schema._beehive.tables[target_type_name]
+            var input = args[input_field_name]
+            return deleteFromListField(schema, table_config, args[table_config.pk_column], field_name, input)
+        }
+    }
+
+}
+
+
 async function performDelete(cascades, schema, table_config, pk) {
     if(cascades) {
         for(var i in cascades) {
@@ -737,7 +773,9 @@ exports.BeehiveDirectives = {
     beehiveRelationFilter: BeehiveRelationFilterDirective,
     beehiveRelationTimeFilter: BeehiveRelationTimeFilterDirective,
     beehiveDelete: BeehiveDeleteDirective,
-    beehiveDeleteList: BeehiveDeleteListDirective
+    beehiveDeleteList: BeehiveDeleteListDirective,
+    beehiveListFieldAppend: BeehiveListFieldAppendDirective,
+    beehiveListFieldDelete: BeehiveListFieldDeleteDirective,
 };
 
 if (graphS3) {

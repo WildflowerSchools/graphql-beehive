@@ -66,6 +66,7 @@ before(async function() {
             var ok = await status()
             if (ok) {
                 await sleep(10000)
+                console.log("returning child")
                 return child
             }
             await sleep(3000)
@@ -75,6 +76,7 @@ before(async function() {
         child.destroy()
         throw Error("postgres didn't start")
     })()
+    return
 })
 
 
@@ -786,6 +788,67 @@ describe('Beehive general suite', function() {
             var things = await request(uri, query)
             expect(things.findNests).to.not.equal(null)
             expect(things.findNests.data.length).to.equal(1)
+        })
+
+
+
+        it('tagTeam', async function() {
+            const createQuery = `
+                    mutation {
+                      thing1: newThing(thing: {name: "tagTeam1", material: "pencil-tape", tags: ["new", "blue"]}) {
+                        thing_id
+                        tags
+                      }
+
+                      thing2: newThing(thing: {name: "tagTeam2", material: "pencil-tape", tags: ["new", "red"]}) {
+                        thing_id
+                        tags
+                      }
+
+                    }
+                `
+            var thing = await request(uri, createQuery)
+            console.log(thing)
+            expect(thing).to.not.equal(null)
+            expect(thing.thing1.tags).to.eql(["new", "blue"])
+            const mutateQuery = `
+                    mutation {
+                      thing1: tagThing(thing_id: "${thing.thing1.thing_id}", tags: ["orange"]) {
+                        thing_id
+                        tags
+                      }
+
+                      thing2: untagThing(thing_id: "${thing.thing2.thing_id}", tags: ["red"]) {
+                        thing_id
+                        tags
+                      }
+
+                    }
+                `
+            console.log(mutateQuery)
+            var thing = await request(uri, mutateQuery)
+            expect(thing).to.not.equal(null)
+            expect(thing.thing1.tags).to.eql(["new", "blue", "orange"])
+            expect(thing.thing2.tags).to.eql(["new"])
+
+            query = `
+                    query {
+                        findThings(query: {field: "material", operator: EQ, value: "pencil-tape"}) {
+                            data {
+                                ... on Thing {
+                                    thing_id
+                                    name
+                                    tags
+                                }
+                            }
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            console.log(things.findThings.data)
+            expect(things.findThings).to.not.equal(null)
+            expect(things.findThings.data.length).to.equal(2)
+
         })
 
     })
