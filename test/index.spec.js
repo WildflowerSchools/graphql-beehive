@@ -805,12 +805,23 @@ describe('Beehive general suite', function() {
                         tags
                       }
 
+                      thing3: newThing(thing: {name: "tagTeam3", material: "pencil-tape"}) {
+                        thing_id
+                        tags
+                      }
+
+                      thing4: newThing(thing: {name: "tagTeam4", material: "pencil-tape"}) {
+                        thing_id
+                        tags
+                      }
+
                     }
                 `
             var thing = await request(uri, createQuery)
             console.log(thing)
             expect(thing).to.not.equal(null)
             expect(thing.thing1.tags).to.eql(["new", "blue"])
+            expect(thing.thing3.tags).to.equal(null)
             const mutateQuery = `
                     mutation {
                       thing1: tagThing(thing_id: "${thing.thing1.thing_id}", tags: ["orange"]) {
@@ -823,6 +834,16 @@ describe('Beehive general suite', function() {
                         tags
                       }
 
+                      thing3: tagThing(thing_id: "${thing.thing4.thing_id}", tags: ["red"]) {
+                        thing_id
+                        tags
+                      }
+
+                      thing4: untagThing(thing_id: "${thing.thing4.thing_id}", tags: ["red"]) {
+                        thing_id
+                        tags
+                      }
+
                     }
                 `
             console.log(mutateQuery)
@@ -830,6 +851,8 @@ describe('Beehive general suite', function() {
             expect(thing).to.not.equal(null)
             expect(thing.thing1.tags).to.eql(["new", "blue", "orange"])
             expect(thing.thing2.tags).to.eql(["new"])
+            expect(thing.thing3.tags).to.eql(["red"])
+            expect(thing.thing4.tags).to.eql([])
 
             query = `
                     query {
@@ -847,7 +870,7 @@ describe('Beehive general suite', function() {
             var things = await request(uri, query)
             console.log(things.findThings.data)
             expect(things.findThings).to.not.equal(null)
-            expect(things.findThings.data.length).to.equal(2)
+            expect(things.findThings.data.length).to.equal(4)
 
         })
 
