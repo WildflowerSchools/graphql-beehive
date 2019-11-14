@@ -238,7 +238,7 @@ function renderPageInfo(pageInfo) {
             result += ` ORDER BY created ASC`
         }
         // set a default max to 20 and an upper limit to the max at 100 to prevent too much data from being loaded
-        if(pageInfo.max && pageInfo.max =< 100) {
+        if(pageInfo.max && pageInfo.max <= 100) {
             result += ` LIMIT ${pageInfo.max}`
         } else if(pageInfo.max && pageInfo.max > 100) {
             result += ' LIMIT 100'
