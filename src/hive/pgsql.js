@@ -237,8 +237,13 @@ function renderPageInfo(pageInfo) {
             // order by creation date by default, we do this so things are predictable with pagination if no sorting is specified
             result += ` ORDER BY created ASC`
         }
-        if(pageInfo.max) {
+        // set a default max to 20 and an upper limit to the max at 100 to prevent too much data from being loaded
+        if(pageInfo.max && pageInfo.max =< 100) {
             result += ` LIMIT ${pageInfo.max}`
+        } else if(pageInfo.max && pageInfo.max > 100) {
+            result += ' LIMIT 100'
+        } else {
+            result += ' LIMIT 20'
         }
         if(pageInfo.cursor) {
             result += ` ${decodeCursor(pageInfo.cursor)}`
