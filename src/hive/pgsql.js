@@ -168,7 +168,7 @@ exports.insertType = async function(schema, table_config, input) {
 
 
 exports.listType = async function(schema, table_config, pageInfo) {
-    var things = await pool.query(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}${renderPageInfo(pageInfo)}`)
+    var things = await pool.query(renderPageInfo(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}`, pageInfo))
     var rows = []
     for(var row of things.rows) {
         rows.push(applySystem(row))
@@ -191,7 +191,7 @@ exports.getItem = async function(schema, table_config, pk) {
 
 
 exports.getRelatedItems = async function(schema, table_config, target_field_name, value, pageInfo) {
-    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}'${renderPageInfo(pageInfo)}`
+    var query = renderPageInfo(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}'`, pageInfo)
     var things = await pool.query(query)
     var rows = []
     for(var row of things.rows) {
@@ -215,7 +215,7 @@ exports.deleteRelations = async function(schema, table_config, target_field_name
 
 
 exports.getRelatedItemsFiltered = async function(schema, table_config, target_field_name, value, query, pageInfo) {
-    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}' ${query ? "AND" : "" } ${renderQuery(query)}${renderPageInfo(pageInfo)}`
+    var query = renderPageInfo(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '{"${target_field_name}":  "${value}"}' ${query ? "AND" : "" } ${renderQuery(query)}`, pageInfo)
     var things = await pool.query(query)
     var rows = []
     for(var row of things.rows) {
@@ -224,8 +224,8 @@ exports.getRelatedItemsFiltered = async function(schema, table_config, target_fi
     return rows
 }
 
-function renderPageInfo(pageInfo) {
-    var result = ""
+function renderPageInfo(query, pageInfo) {
+    var result = query
     if(pageInfo) {
         if(pageInfo.sort) {
             var sorts = []
@@ -239,16 +239,17 @@ function renderPageInfo(pageInfo) {
         }
         // set a default max to 20 and an upper limit to the max at 1000 to prevent too much data from being loaded
         if(pageInfo.max && pageInfo.max <= 100) {
-            result = `WITH t as(${result}) SELECT * FROM t LIMIT ${pageInfo.max}`
+            result = `WITH temp as (${result}) SELECT * FROM temp LIMIT ${pageInfo.max}`
         } else if(pageInfo.max && pageInfo.max > 100) {
-            result = `WITH t as(${result}) SELECT * FROM t LIMIT 1000`
+            result = `WITH temp as (${result}) SELECT * FROM temp LIMIT 1000`
         } else {
-            result = `WITH t as(${result}) SELECT * FROM t LIMIT 20`
+            result = `WITH temp as (${result}) SELECT * FROM temp LIMIT 20`
         }
         if(pageInfo.cursor) {
             result += ` ${decodeCursor(pageInfo.cursor)}`
         }
     }
+    console.log(result)
     return result
 }
 
@@ -323,7 +324,7 @@ function renderQuery(query) {
 }
 
 exports.queryType = async function(schema, table_config, query, pageInfo) {
-    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}  ${query ? "WHERE" : "" } ${renderQuery(query)}${renderPageInfo(pageInfo)}`
+    var sql = renderPageInfo(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}  ${query ? "WHERE" : "" } ${renderQuery(query)}`, pageInfo)
     // console.log(sql)
     // var explained = await pool.query(`EXPLAIN ${sql}`)
     var things = await pool.query(sql)
@@ -336,7 +337,7 @@ exports.queryType = async function(schema, table_config, query, pageInfo) {
 
 exports.simpleQueryType = async function(schema, table_config, query, pageInfo) {
     // console.log(query)
-    var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '${JSON.stringify(query)}'${renderPageInfo(pageInfo)}`
+    var sql = renderPageInfo(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '${JSON.stringify(query)}'`, pageInfo)
     // console.log(sql)
     // var explained = await pool.query(`EXPLAIN ${sql}`)
     // console.log(explained)
