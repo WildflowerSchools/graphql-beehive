@@ -39,7 +39,7 @@ exports.ensureDatabase = async function(schema) {
 
         for(var index of schema._beehive.indexes) {
             const table = schema._beehive.tables[index.target_type_name]
-            await client.query(`CREATE INDEX IF NOT EXISTS ${schema._beehive.schema_name}_${table.table_name}_btree_${index.field.name} ON ${schema._beehive.schema_name}.${table.table_name} USING BTREE ((data->'index.field.name'))`)
+            await client.query(`CREATE INDEX IF NOT EXISTS ${schema._beehive.schema_name}_${table.table_name}_btree_${index.field.name} ON ${schema._beehive.schema_name}.${table.table_name} USING BTREE ((data->'${index.field.name}'))`)
             console.log(`btree index '${table.table_name}' for '${index.field.name}' should exist now`)
         }
 
@@ -237,13 +237,13 @@ function renderPageInfo(pageInfo) {
             // order by creation date by default, we do this so things are predictable with pagination if no sorting is specified
             result += ` ORDER BY created ASC`
         }
-        // set a default max to 20 and an upper limit to the max at 100 to prevent too much data from being loaded
+        // set a default max to 20 and an upper limit to the max at 1000 to prevent too much data from being loaded
         if(pageInfo.max && pageInfo.max <= 100) {
-            result += ` LIMIT ${pageInfo.max}`
+            result = `WITH t as(${result}) SELECT * FROM t LIMIT ${pageInfo.max}`
         } else if(pageInfo.max && pageInfo.max > 100) {
-            result += ' LIMIT 100'
+            result = `WITH t as(${result}) SELECT * FROM t LIMIT 1000`
         } else {
-            result += ' LIMIT 20'
+            result = `WITH t as(${result}) SELECT * FROM t LIMIT 20`
         }
         if(pageInfo.cursor) {
             result += ` ${decodeCursor(pageInfo.cursor)}`
