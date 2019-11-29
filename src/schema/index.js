@@ -25,7 +25,16 @@ exports.schema = makeExecutableSchema({
         thing_id: ID!
     }
 
-    type Thing implements AnyThing @beehiveTable(table_name: "things", pk_column: "thing_id") {
+    type Thing implements AnyThing @beehiveTable(
+                table_name: "things",
+                pk_column: "thing_id",
+                table_type: native,
+                partition: "name",
+                native_indexes: [
+                    {name: "material_type", type: btree, columns: ["material", "type"]},
+                    {name: "tag", type: hash, columns: ["tags"]}
+                ]
+    ) {
         thing_id: ID!
         name: String
         material: String

@@ -1,8 +1,9 @@
 .PHONY: run test
 
 run:
-	docker-compose up --build
+	@sh scripts/data-dir.sh
+	@docker-compose up --build
 
 
-test: run
-	docker-compose run beehive-service /app/node_modules/.bin/mocha src/**/*.spec.js",
+test:
+	@docker-compose run beehive-service /app/node_modules/.bin/mocha test/**/*.spec.js

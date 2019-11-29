@@ -3,7 +3,10 @@ const { request } = require('graphql-request')
 const expect = require('chai').expect
 const { Pool } = require('pg')
 const pool = new Pool()
-const {server} = require("./testsupport")
+const { server } = require("./testsupport")
+const { queryType } = require("../src/hive/pgsql")
+const { schema } = require("../src/schema")
+
 
 const uri = "http://localhost:4423/graphql"
 
@@ -91,7 +94,6 @@ describe('Beehive general suite', function() {
 
     before(async function() {
         // setup an apollo-server-express app and run it
-        const { schema } = require("../src/schema");
         expressApp = await server(schema)
     })
 
@@ -805,12 +807,23 @@ describe('Beehive general suite', function() {
                         tags
                       }
 
+                      thing3: newThing(thing: {name: "tagTeam3", material: "pencil-tape"}) {
+                        thing_id
+                        tags
+                      }
+
+                      thing4: newThing(thing: {name: "tagTeam4", material: "pencil-tape"}) {
+                        thing_id
+                        tags
+                      }
+
                     }
                 `
             var thing = await request(uri, createQuery)
             console.log(thing)
             expect(thing).to.not.equal(null)
             expect(thing.thing1.tags).to.eql(["new", "blue"])
+            expect(thing.thing3.tags).to.equal(null)
             const mutateQuery = `
                     mutation {
                       thing1: tagThing(thing_id: "${thing.thing1.thing_id}", tags: ["orange"]) {
@@ -823,6 +836,16 @@ describe('Beehive general suite', function() {
                         tags
                       }
 
+                      thing3: tagThing(thing_id: "${thing.thing4.thing_id}", tags: ["red"]) {
+                        thing_id
+                        tags
+                      }
+
+                      thing4: untagThing(thing_id: "${thing.thing4.thing_id}", tags: ["red"]) {
+                        thing_id
+                        tags
+                      }
+
                     }
                 `
             console.log(mutateQuery)
@@ -830,6 +853,8 @@ describe('Beehive general suite', function() {
             expect(thing).to.not.equal(null)
             expect(thing.thing1.tags).to.eql(["new", "blue", "orange"])
             expect(thing.thing2.tags).to.eql(["new"])
+            expect(thing.thing3.tags).to.eql(["red"])
+            expect(thing.thing4.tags).to.eql([])
 
             query = `
                     query {
@@ -847,9 +872,22 @@ describe('Beehive general suite', function() {
             var things = await request(uri, query)
             console.log(things.findThings.data)
             expect(things.findThings).to.not.equal(null)
-            expect(things.findThings.data.length).to.equal(2)
+            expect(things.findThings.data.length).to.equal(4)
 
         })
+
+        it('explain query for native', async function() {
+            var table_config = schema._beehive.tables["Thing"]
+            var query = {field: "material", operator: "EQ", value: "pencil-tape"}
+            var explained = await queryType(schema, table_config, query, null, true)
+            console.log("============= explanation ===============")
+            console.log(explained)
+            console.log("=========================================")
+            expect(explained).to.not.equal(null)
+            expect(explained.rows[0]['QUERY PLAN']).to.to.match(/^Index Scan/)
+            expect(explained.rows[0]['QUERY PLAN']).to.to.match(/beehive_material_type/)
+        })
+
 
     })
 })

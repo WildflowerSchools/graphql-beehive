@@ -10,6 +10,10 @@ services:
       POSTGRES_DB: beehive
     ports:
       - 5432:5432
+    volumes:
+      - type: bind
+        source: ./data
+        target: /var/lib/postgresql
 
   beehive-service:
     build:
@@ -23,7 +27,7 @@ services:
       PGUSER: beehive_user
       PGDATABASE: beehive
       PGHOST: postgres
-      BEEHIVE_ENABLE_EVENTS: "yes"
+      BEEHIVE_ENABLE_EVENTS: "no"
       AWS_REGION: us-east-1
     ports:
       - 4022:4000

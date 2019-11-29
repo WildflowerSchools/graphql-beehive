@@ -17,9 +17,28 @@ exports.BeehiveTypeDefs = `
     # ISO formated Date Timestamp
     scalar Datetime
 
+    enum TableType {
+        jsonb
+        native
+    }
+
+    enum NativeIndexType {
+        btree
+        hash
+        gist
+        gin
+    }
+
+    input NativeIndex {
+        name: String!
+        type: NativeIndexType!
+        columns: [String!]
+    }
+
     directive @beehive (schema_name: String) on SCHEMA
 
-    directive @beehiveTable(table_name: String, pk_column: String, resolve_type_field: String) on OBJECT | INTERFACE
+    # partition is only valid on a native table type.
+    directive @beehiveTable(table_name: String, pk_column: String, resolve_type_field: String, table_type: TableType, partition: String, native_indexes: [NativeIndex!]) on OBJECT | INTERFACE
 
     directive @beehiveIndexed(target_type_name: String!) on FIELD_DEFINITION
 
@@ -173,10 +192,17 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
 
     visitObject(type) {
         var table_config = {
-            table_type: "simple",
             type: type,
             table_name: type.name,
             pk_column: this.args.pk_column,
+            table_type: this.args.table_type,
+            partition: this.args.partition,
+            indexes: this.args.native_indexes,
+        }
+
+
+        if(!this.args.table_type) {
+            table_config["table_type"] = "jsonb"
         }
 
         if(!this.args.pk_column) {
@@ -250,7 +276,7 @@ class BeehiveCreateDirective extends SchemaDirectiveVisitor {
             const table_config = schema._beehive.tables[target_type_name]
 
             if(!table_config) {
-                throw Error(`Table definition (${target_type_name}) not forund by beehive.`)
+                throw Error(`Table definition (${target_type_name}) not found by beehive.`)
             }
             const input = args[inputName]
             if(!input) {
@@ -463,7 +489,7 @@ class BeehiveRelationDirective extends SchemaDirectiveVisitor {
 class BeehiveUnionDirective extends SchemaDirectiveVisitor {
     visitUnion(union) {
         union.resolveType = async function(obj, context, info) {
-            // This doesn't actually work.
+            // This doesn't actually work. TED +1
             return obj.system.type_name
         }
     }
@@ -500,9 +526,11 @@ class BeehiveUnionDirective extends SchemaDirectiveVisitor {
 class BeehiveAssignmentTypeDirective extends SchemaDirectiveVisitor {
 
     visitObject(type) {
-
+        // TODO - extend to native tables
         var table_config = {
-            table_type: "assignment",
+            is_assignment: true,
+            table_type: "jsonb",
+            partition: null,
             type: type,
             table_name: type.name,
             pk_column: this.args.pk_column,
