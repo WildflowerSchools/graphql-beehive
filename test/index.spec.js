@@ -3,7 +3,10 @@ const { request } = require('graphql-request')
 const expect = require('chai').expect
 const { Pool } = require('pg')
 const pool = new Pool()
-const {server} = require("./testsupport")
+const { server } = require("./testsupport")
+const { queryType } = require("../src/hive/pgsql")
+const { schema } = require("../src/schema")
+
 
 const uri = "http://localhost:4423/graphql"
 
@@ -91,7 +94,6 @@ describe('Beehive general suite', function() {
 
     before(async function() {
         // setup an apollo-server-express app and run it
-        const { schema } = require("../src/schema");
         expressApp = await server(schema)
     })
 
@@ -873,6 +875,19 @@ describe('Beehive general suite', function() {
             expect(things.findThings.data.length).to.equal(4)
 
         })
+
+        it('explain query for native', async function() {
+            var table_config = schema._beehive.tables["Thing"]
+            var query = {field: "material", operator: "EQ", value: "pencil-tape"}
+            var explained = await queryType(schema, table_config, query, null, true)
+            console.log("============= explanation ===============")
+            console.log(explained)
+            console.log("=========================================")
+            expect(explained).to.not.equal(null)
+            expect(explained.rows[0]['QUERY PLAN']).to.to.match(/^Index Scan/)
+            expect(explained.rows[0]['QUERY PLAN']).to.to.match(/beehive_material_type/)
+        })
+
 
     })
 })
