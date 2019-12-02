@@ -96,7 +96,7 @@ exports.ensureDatabase = async function(schema) {
                 }
                 console.log(`table '${table.table_name}' should exist now`)
                 for(var name of Object.keys(table.type._fields)) {
-                    if(name != table.pk_column && name != "system") {
+                    if(name != table.pk_column && name != "system" && !table.native_exclude.includes(name)) {
                         var field = table.type._fields[name]
                         await client.query(`ALTER TABLE IF EXISTS ${schema._beehive.schema_name}.${table.table_name} ADD COLUMN IF NOT EXISTS ${name} ${mapType(schema, field)}`)
                         console.log(`table '${table.table_name}' native column '${name}' should exist now`)

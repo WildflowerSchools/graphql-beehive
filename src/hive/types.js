@@ -38,7 +38,7 @@ exports.BeehiveTypeDefs = `
     directive @beehive (schema_name: String) on SCHEMA
 
     # partition is only valid on a native table type.
-    directive @beehiveTable(table_name: String, pk_column: String, resolve_type_field: String, table_type: TableType, partition: String, native_indexes: [NativeIndex!]) on OBJECT | INTERFACE
+    directive @beehiveTable(table_name: String, pk_column: String, resolve_type_field: String, table_type: TableType, partition: String, native_indexes: [NativeIndex!], native_exclude: [String!]) on OBJECT | INTERFACE
 
     directive @beehiveIndexed(target_type_name: String!) on FIELD_DEFINITION
 
@@ -198,8 +198,13 @@ class BeehiveDirective extends SchemaDirectiveVisitor {
             table_type: this.args.table_type,
             partition: this.args.partition,
             indexes: this.args.native_indexes,
+            native_exclude: this.args.native_exclude,
         }
 
+
+        if(!this.args.native_exclude) {
+            table_config.native_exclude = []
+        }
 
         if(!this.args.table_type) {
             table_config["table_type"] = "jsonb"
