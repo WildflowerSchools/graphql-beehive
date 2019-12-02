@@ -232,8 +232,10 @@ exports.insertType = async function(schema, table_config, input) {
             var fields = [pk_column, "data", "type_name"]
             var values = [pk, forDB, target_type_name]
             for(var key of keys) {
-                fields.push(key)
-                values.push(forDB[key])
+                if(!table.native_exclude.includes(key)) {
+                    fields.push(key)
+                    values.push(forDB[key])
+                }
             }
             await client.query(`INSERT INTO ${schema._beehive.schema_name}.${table_config.table_name} (${fields.join(', ')})
                                     VALUES ($${ vars.join(', $')})
@@ -521,8 +523,10 @@ exports.putType = async function(schema, table_config, pk, input) {
             var fields = ["data"]
             var values = [pk, forDB]
             for(var key of keys) {
-                fields.push(key)
-                values.push(forDB[key])
+                if(!table.native_exclude.includes(key)) {
+                    fields.push(key)
+                    values.push(forDB[key])
+                }
             }
             function doSets() {
                 var sets = []
