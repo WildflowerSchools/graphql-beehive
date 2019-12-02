@@ -42,6 +42,7 @@ exports.schema = makeExecutableSchema({
         type: TypeOfThing
         related: [RelatedThing!] @beehiveRelation(target_type_name: "RelatedThing", target_field_name: "thing")
         dimensions: [Float!]
+        timestamp: Datetime
         observations: [Observation!] @beehiveRelationTimeFilter(target_type_name: "Observation", target_field_name: "thing", timestamp_field_name: "timestamp")
         tags: [String!]
     }
@@ -52,6 +53,7 @@ exports.schema = makeExecutableSchema({
         material: String
         type: TypeOfThing
         tags: [String!]
+        timestamp: Datetime
     }
 
     type RelatedThing @beehiveTable(table_name: "rel_things") {

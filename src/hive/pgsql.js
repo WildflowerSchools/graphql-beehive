@@ -55,6 +55,13 @@ function mapType(schema, field) {
                         return "boolean"
                     }
                     break
+                case "Datetime":
+                    if(isList) {
+                        return "timestamp[]"
+                    } else {
+                        return "timestamp"
+                    }
+                    break
                 default:
                     if(isList) {
                         return "UUID[]"
@@ -408,7 +415,7 @@ const opMap = {
 function encodeValue(schema, table_config, name, value) {
     var field = table_config.type._fields[name]
     var col_type = mapType(schema, field)
-    if(col_type.startsWith("varchar") || col_type.startsWith("UUID")) {
+    if(col_type.startsWith("varchar") || col_type.startsWith("UUID") || col_type == "timestamp") {
         return `'${value}'`
     } else {
         return value
