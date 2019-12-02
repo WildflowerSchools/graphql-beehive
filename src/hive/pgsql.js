@@ -63,12 +63,20 @@ function mapType(schema, field) {
                     }
                     break
                 default:
-                    if(isList) {
-                        return "UUID[]"
+                    var astNode = schema._typeMap[current.name.value].astNode
+                    if(astNode && astNode.kind && astNode.kind == "EnumTypeDefinition") {
+                        if(isList) {
+                            return "varchar(256)[]"
+                        } else {
+                            return "varchar(256)"
+                        }
                     } else {
-                        return "UUID"
+                        if(isList) {
+                            return "UUID[]"
+                        } else {
+                            return "UUID"
+                        }
                     }
-                    break
             }
         }
         current = current.type

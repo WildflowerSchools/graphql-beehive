@@ -797,7 +797,7 @@ describe('Beehive general suite', function() {
         it('tagTeam', async function() {
             const createQuery = `
                     mutation {
-                      thing1: newThing(thing: {name: "tagTeam1", material: "pencil-tape", tags: ["new", "blue"], timestamp: "2019-11-11T11:11:00.000Z"}) {
+                      thing1: newThing(thing: {name: "tagTeam1", material: "pencil-tape", tags: ["new", "blue"], timestamp: "2019-11-11T11:11:00.000Z", type: WOOD}) {
                         thing_id
                         tags
                       }
