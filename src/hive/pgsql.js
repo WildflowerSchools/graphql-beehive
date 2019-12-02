@@ -224,6 +224,9 @@ exports.insertType = async function(schema, table_config, input) {
             var keys = Object.keys(forDB)
             if(keys.indexOf("system") >= 0) keys.splice(keys.indexOf("system"), 1)
             if(keys.indexOf(pk_column) >= 0) keys.splice(keys.indexOf(pk_column), 1)
+            for(var k of table_config.native_exclude) {
+                if(keys.indexOf(k) >= 0) keys.splice(keys.indexOf(k), 1)
+            }
             var vars = [...Array(4 + keys.length).keys()]
             vars.shift()
             var fields = [pk_column, "data", "type_name"]
@@ -512,6 +515,9 @@ exports.putType = async function(schema, table_config, pk, input) {
             var keys = Object.keys(forDB)
             if(keys.indexOf("system") >= 0) keys.splice(keys.indexOf("system"), 1)
             if(keys.indexOf(pk_column) >= 0) keys.splice(keys.indexOf(pk_column), 1)
+            for(var k of table_config.native_exclude) {
+                if(keys.indexOf(k) >= 0) keys.splice(keys.indexOf(k), 1)
+            }
             var fields = ["data"]
             var values = [pk, forDB]
             for(var key of keys) {
