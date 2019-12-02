@@ -33,7 +33,8 @@ exports.schema = makeExecutableSchema({
                 native_indexes: [
                     {name: "material_type", type: btree, columns: ["material", "type"]},
                     {name: "tag", type: hash, columns: ["tags"]}
-                ]
+                ],
+                native_exclude: ["dimensions"]
     ) {
         thing_id: ID!
         name: String

@@ -802,7 +802,7 @@ describe('Beehive general suite', function() {
                         tags
                       }
 
-                      thing2: newThing(thing: {name: "tagTeam2", material: "pencil-tape", tags: ["new", "red"]}) {
+                      thing2: newThing(thing: {name: "tagTeam2", material: "pencil-tape", tags: ["new", "red"], dimensions: [0.1, 10.23]}) {
                         thing_id
                         tags
                       }
@@ -864,6 +864,7 @@ describe('Beehive general suite', function() {
                                     thing_id
                                     name
                                     tags
+                                    dimensions
                                 }
                             }
                         }

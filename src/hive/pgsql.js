@@ -232,7 +232,7 @@ exports.insertType = async function(schema, table_config, input) {
             var fields = [pk_column, "data", "type_name"]
             var values = [pk, forDB, target_type_name]
             for(var key of keys) {
-                if(!table.native_exclude.includes(key)) {
+                if(!table_config.native_exclude.includes(key)) {
                     fields.push(key)
                     values.push(forDB[key])
                 }
@@ -523,7 +523,7 @@ exports.putType = async function(schema, table_config, pk, input) {
             var fields = ["data"]
             var values = [pk, forDB]
             for(var key of keys) {
-                if(!table.native_exclude.includes(key)) {
+                if(!table_config.native_exclude.includes(key)) {
                     fields.push(key)
                     values.push(forDB[key])
                 }
