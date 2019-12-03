@@ -256,9 +256,7 @@ exports.insertType = async function(schema, table_config, input) {
                                     VALUES ($${ vars.join(', $')})
                                     ON CONFLICT (${pk_column})
                                         DO UPDATE
-                                            SET data = $2`,
-                                    values
-                                )
+                                            SET ${doSets(fields, 1)}, last_modified = CURRENT_TIMESTAMP`, values)
         } else {
             await client.query(`INSERT INTO ${schema._beehive.schema_name}.${table_config.table_name} (${pk_column}, data, type_name)
                                     VALUES ($1, $2, $3)
@@ -503,6 +501,14 @@ exports.simpleQueryType = async function(schema, table_config, query, pageInfo) 
 }
 
 
+function doSets(fields, offset) {
+    var sets = []
+    for(var i in fields) {
+        sets.push(`${fields[i]} = $${(Number(i) + offset)}`)
+    }
+    return sets.join(", ")
+}
+
 exports.putType = async function(schema, table_config, pk, input) {
     const client = await pool.connect()
     const pk_column = table_config.pk_column
@@ -543,14 +549,8 @@ exports.putType = async function(schema, table_config, pk, input) {
                     values.push(forDB[key])
                 }
             }
-            function doSets() {
-                var sets = []
-                for(var i in fields) {
-                    sets.push(`${fields[i]} = $${(Number(i) + 2)}`)
-                }
-                return sets.join(", ")
-            }
-            var sql = `UPDATE ${schema._beehive.schema_name}.${table_config.table_name} SET ${doSets()}, last_modified = CURRENT_TIMESTAMP WHERE ${pk_column} = $1`
+            
+            var sql = `UPDATE ${schema._beehive.schema_name}.${table_config.table_name} SET ${doSets(fields, 2)}, last_modified = CURRENT_TIMESTAMP WHERE ${pk_column} = $1`
             console.log(sql)
             await client.query(sql, values)
         }
