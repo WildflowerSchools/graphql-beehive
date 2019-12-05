@@ -119,7 +119,7 @@ exports.ensureDatabase = async function(schema) {
                 }
                 if(table.indexes && table.indexes.length > 0) {
                     for(var index of table.indexes) {
-                        await client.query(`CREATE INDEX IF NOT EXISTS beehive_${index.name} ON ${schema._beehive.schema_name}.${table.table_name} USING ${index.type} (${index.columns.join(', ')})`)
+                        await client.query(`CREATE INDEX IF NOT EXISTS beehive_${table.table_name}__${index.name} ON ${schema._beehive.schema_name}.${table.table_name} USING ${index.type} (${index.columns.join(', ')})`)
                     }
                 }
             } else {
