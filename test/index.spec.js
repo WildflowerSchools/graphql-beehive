@@ -886,7 +886,7 @@ describe('Beehive general suite', function() {
             console.log("=========================================")
             expect(explained).to.not.equal(null)
             expect(explained.rows[0]['QUERY PLAN']).to.to.match(/^Index Scan/)
-            expect(explained.rows[0]['QUERY PLAN']).to.to.match(/beehive_material_type/)
+            expect(explained.rows[0]['QUERY PLAN']).to.to.match(/beehive_things__material_type/)
         })
 
 
