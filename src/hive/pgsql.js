@@ -360,13 +360,16 @@ function renderPageInfo(query, pageInfo, table_config, schema) {
             // order by creation date by default, we do this so things are predictable with pagination if no sorting is specified
             result += ` ORDER BY created ASC`
         }
+        if(table_config.table_type != "native") {
+            result = `WITH temp as (${result}) SELECT * FROM temp`
+        }
         // set a default max to 20 and an upper limit to the max at 1000 to prevent too much data from being loaded
         if(pageInfo.max && pageInfo.max <= 100) {
-            result = `WITH temp as (${result}) SELECT * FROM temp LIMIT ${pageInfo.max}`
+            result = `${result} LIMIT ${pageInfo.max}`
         } else if(pageInfo.max && pageInfo.max > 100) {
-            result = `WITH temp as (${result}) SELECT * FROM temp LIMIT 1000`
+            result = `${result} LIMIT 1000`
         } else {
-            result = `WITH temp as (${result}) SELECT * FROM temp LIMIT 20`
+            result = `${result} LIMIT 20`
         }
         if(pageInfo.cursor) {
             result += ` ${decodeCursor(pageInfo.cursor)}`
