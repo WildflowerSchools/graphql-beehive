@@ -234,7 +234,9 @@ describe('Beehive general suite', function() {
                     data {
                       assignment_id
                       assigned {
-                        held_id
+                        ... on Held {
+                            held_id
+                        }
                       }
                       holder {
                         holder_id
@@ -974,10 +976,10 @@ describe('Beehive general suite', function() {
                       }
                     }
                 `
-            var vorts = await request(uri, createQuery)
-            console.log(vorts)
-            expect(vorts).to.not.equal(null)
-            expect(vorts.vortex_1.tags).to.eql(["new", "blue"])
+            var vorts_created = await request(uri, createQuery)
+            console.log(vorts_created)
+            expect(vorts_created).to.not.equal(null)
+            expect(vorts_created.vortex_1.tags).to.eql(["new", "blue"])
 
             query = `
                     query {
@@ -1008,6 +1010,83 @@ describe('Beehive general suite', function() {
             console.log(vorts.searchVortices.data)
             expect(vorts.searchVortices).to.not.equal(null)
             expect(vorts.searchVortices.data.length).to.equal(1)
+
+            const createCollectionsQuery = `
+                    mutation {
+                      collection_1: createCollection(collection: {items: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_2.vortex_id}"]}) {
+                        collection_id
+                      }
+
+                      collection_2: createCollection(collection: {items: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_3.vortex_id}"]}) {
+                        collection_id
+                      }
+
+                      collection_3: createCollection(collection: {items: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_4.vortex_id}"]}) {
+                        collection_id
+                      }
+
+                      collection_4: createCollection(collection: {items: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_5.vortex_id}"]}) {
+                        collection_id
+                      }
+
+                      collection_5: createCollection(collection: {items: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_6.vortex_id}"]}) {
+                        collection_id
+                      }
+
+                      collection_6: createCollection(collection: {items: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_7.vortex_id}"]}) {
+                        collection_id
+                      }
+
+                      collection_7: createCollection(collection: {items: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_8.vortex_id}"]}) {
+                        collection_id
+                      }
+
+                      collection_8: createCollection(collection: {items: ["${vorts_created.vortex_6.vortex_id}", "${vorts_created.vortex_8.vortex_id}"]}) {
+                        collection_id
+                      }
+                    }
+                `
+            var collections = await request(uri, createCollectionsQuery)
+            console.log(collections)
+            expect(collections).to.not.equal(null)
+
+            query = `
+                    query {
+                        searchCollections(query: {field: "items", operator: CONTAINS, values: ["${vorts_created.vortex_1.vortex_id}"]}) {
+                            data {
+                                collection_id
+                                items {
+                                    ... on Vortex {
+                                        vortex_id
+                                    }
+                                }
+                            }
+                        }
+                    }
+                `
+            var collections = await request(uri, query)
+            console.log(collections)
+            expect(collections.searchCollections).to.not.equal(null)
+            expect(collections.searchCollections.data.length).to.equal(7)
+
+            query = `
+                    query {
+                        searchCollections(query: {field: "items", operator: CONTAINS, values: ["${vorts_created.vortex_8.vortex_id}"]}) {
+                            data {
+                                collection_id
+                                items {
+                                    ... on Vortex {
+                                        vortex_id
+                                    }
+                                }
+                            }
+                        }
+                    }
+                `
+            var collections = await request(uri, query)
+            console.log(collections.searchCollections.data)
+            expect(collections.searchCollections).to.not.equal(null)
+            expect(collections.searchCollections.data.length).to.equal(2)
         })
 
 

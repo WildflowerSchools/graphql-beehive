@@ -514,12 +514,22 @@ class BeehiveUnionDirective extends SchemaDirectiveVisitor {
 
         field.resolve = async function (obj, args, context, info) {
             console.log(`looking for a relation that is a UNION ${field_name} could be ${target_types}`)
+            // console.log(obj)
             if(isListField) {
-                // TODO - need to parallelize the loading of related items
-                //   I fear that no matter how this is implemented it will not be efficient by any means
-                return []
+                // console.log("it's a vector")
+                var promises = []
+                for(var list_item of obj[field_name]) {
+                    var infered_item_type = await inferType(schema, list_item)
+                    if(infered_item_type) {
+                        var table_config = schema._beehive.tables[infered_item_type]
+                        promises.push(getItem(schema, table_config, list_item))
+                    }
+                }
+                return Promise.all(promises)
             } else {
+                // console.log("it's a scalar")
                 const infered_type = await inferType(schema, obj[field_name])
+                // console.log(`infered_type ${infered_type}`)
                 if(infered_type) {
                     var table_config = schema._beehive.tables[infered_type]
                     return getItem(schema, table_config, obj[field_name])

@@ -105,9 +105,11 @@ exports.schema = makeExecutableSchema({
         name: String
     }
 
+    union Assigned @beehiveUnion = Held | Thing
+
     type Assignment @beehiveAssignmentType(table_name: "assignments", assigned_field: "assigned", assignee_field: "holder", exclusive: true) {
         assignment_id: ID!
-        assigned: Held! @beehiveRelation(target_type_name: "Held")
+        assigned: Assigned! @beehiveUnionResolver(target_types: ["Held", "Thing"])
         holder: Holder! @beehiveRelation(target_type_name: "Holder")
         start: Datetime!
         end: Datetime
@@ -171,6 +173,22 @@ exports.schema = makeExecutableSchema({
         tags: [String!]
     }
 
+    union Item @beehiveUnion = Thing | Vortex
+
+    type Collection @beehiveTable(table_name: "collections", pk_column: "collection_id") {
+        collection_id: ID!
+        items: [Item] @beehiveUnionResolver(target_types: ["Thing", "Vortex"])
+    }
+
+    type CollectionList {
+        data: [Collection!]
+        page_info: PageInfo!
+    }
+
+    input CollectionInput {
+        items: [ID!]
+    }
+
     type Query {
         things(page: PaginationInput): ThingList! @beehiveList(target_type_name: "Thing")
         findThings(query: QueryExpression!, page: PaginationInput): ThingList @beehiveQuery(target_type_name: "Thing")
@@ -188,10 +206,12 @@ exports.schema = makeExecutableSchema({
         findNests(query: QueryExpression!, page: PaginationInput): NestList @beehiveQuery(target_type_name: "Nest")
 
         searchVortices(query: QueryExpression!, page: PaginationInput): VortexList @beehiveQuery(target_type_name: "Vortex")
+        searchCollections(query: QueryExpression!, page: PaginationInput): CollectionList @beehiveQuery(target_type_name: "Collection")
     }
 
     type Mutation {
         createVortex(vortex: VortexInput): Vortex! @beehiveCreate(target_type_name: "Vortex")
+        createCollection(collection: CollectionInput): Collection! @beehiveCreate(target_type_name: "Collection")
 
         makeNest(nest: NestInput): Nest! @beehiveCreate(target_type_name: "Nest")
         newThing(thing: ThingInput): Thing! @beehiveCreate(target_type_name: "Thing")
