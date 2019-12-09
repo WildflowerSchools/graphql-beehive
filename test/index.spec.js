@@ -10,6 +10,7 @@ const { schema } = require("../src/schema")
 
 const uri = "http://localhost:4423/graphql"
 
+process.env.ENVIRONMENT = "local"
 process.env.PGPASSWORD = "iamaninsecurepassword"
 process.env.PGUSER = "beehive_user"
 process.env.PGDATABASE = "beehive-tests-integrated"
@@ -836,12 +837,12 @@ describe('Beehive general suite', function() {
                         tags
                       }
 
-                      thing3: tagThing(thing_id: "${thing.thing4.thing_id}", tags: ["red"]) {
+                      thing3: tagThing(thing_id: "${thing.thing3.thing_id}", tags: ["red"]) {
                         thing_id
                         tags
                       }
 
-                      thing4: untagThing(thing_id: "${thing.thing4.thing_id}", tags: ["red"]) {
+                      thing4: untagThing(thing_id: "${thing.thing4.thing_id}", tags: "['red']") {
                         thing_id
                         tags
                       }
@@ -875,6 +876,44 @@ describe('Beehive general suite', function() {
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(4)
 
+
+            query = `
+                    query {
+                        findThings(query: {field: "tags", operator: CONTAINS, values: ["new"]}) {
+                            data {
+                                ... on Thing {
+                                    thing_id
+                                    name
+                                    tags
+                                    dimensions
+                                }
+                            }
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            console.log(things.findThings.data)
+            expect(things.findThings).to.not.equal(null)
+            expect(things.findThings.data.length).to.equal(2)
+
+            query = `
+                    query {
+                        findThings(query: {field: "tags", operator: EQ, values: ["red"]}) { 
+                            data {
+                                ... on Thing {
+                                    thing_id
+                                    name
+                                    tags
+                                    dimensions
+                                }
+                            }
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            console.log(things.findThings.data)
+            expect(things.findThings).to.not.equal(null)
+            expect(things.findThings.data.length).to.equal(1)
         })
 
         it('explain query for native', async function() {
@@ -887,6 +926,88 @@ describe('Beehive general suite', function() {
             expect(explained).to.not.equal(null)
             expect(explained.rows[0]['QUERY PLAN']).to.to.match(/^Index Scan/)
             expect(explained.rows[0]['QUERY PLAN']).to.to.match(/beehive_things__material_type/)
+        })
+
+
+
+        it('containment', async function() {
+            const createQuery = `
+                    mutation {
+                      vortex_1: createVortex(vortex: {name: "interdimensional portal 1", tags: ["new", "blue"]}) {
+                        vortex_id
+                        tags
+                      }
+
+                      vortex_2: createVortex(vortex: {name: "interdimensional portal 2", tags: ["new", "true"]}) {
+                        vortex_id
+                        tags
+                      }
+
+                      vortex_3: createVortex(vortex: {name: "interdimensional portal 3", tags: ["new", "true"]}) {
+                        vortex_id
+                        tags
+                      }
+
+                      vortex_4: createVortex(vortex: {name: "interdimensional portal 4", tags: ["new", "angus", "marital"]}) {
+                        vortex_id
+                        tags
+                      }
+
+                      vortex_5: createVortex(vortex: {name: "interdimensional portal5 ", tags: ["new", "99"]}) {
+                        vortex_id
+                        tags
+                      }
+
+                      vortex_6: createVortex(vortex: {name: "interdimensional portal 6", tags: ["problems", "cop"]}) {
+                        vortex_id
+                        tags
+                      }
+
+                      vortex_7: createVortex(vortex: {name: "interdimensional portal 7", tags: ["blue"]}) {
+                        vortex_id
+                        tags
+                      }
+
+                      vortex_8: createVortex(vortex: {name: "interdimensional portal 8", tags: ["yellow"]}) {
+                        vortex_id
+                        tags
+                      }
+                    }
+                `
+            var vorts = await request(uri, createQuery)
+            console.log(vorts)
+            expect(vorts).to.not.equal(null)
+            expect(vorts.vortex_1.tags).to.eql(["new", "blue"])
+
+            query = `
+                    query {
+                        searchVortices(query: {field: "tags", operator: CONTAINS, values: ["new"]}) {
+                            data {
+                                vortex_id
+                                tags
+                            }
+                        }
+                    }
+                `
+            var vorts = await request(uri, query)
+            console.log(vorts.searchVortices.data)
+            expect(vorts.searchVortices).to.not.equal(null)
+            expect(vorts.searchVortices.data.length).to.equal(5)
+
+            query = `
+                    query {
+                        searchVortices(query: {field: "tags", operator: CONTAINS, values: ["yellow"]}) {
+                            data {
+                                vortex_id
+                                tags
+                            }
+                        }
+                    }
+                `
+            var vorts = await request(uri, query)
+            console.log(vorts.searchVortices.data)
+            expect(vorts.searchVortices).to.not.equal(null)
+            expect(vorts.searchVortices.data.length).to.equal(1)
         })
 
 

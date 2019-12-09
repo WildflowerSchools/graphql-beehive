@@ -133,12 +133,15 @@ exports.BeehiveTypeDefs = `
         GT
         LTE
         GTE
+        CONTAINS
+        # CONTAIN_BY # not ready to support this
     }
 
     input QueryExpression {
         field: String
         operator: Operator!
         value: String
+        values: [String!]
         children: [QueryExpression!]
     }
 

@@ -153,6 +153,24 @@ exports.schema = makeExecutableSchema({
         end: Datetime
     }
 
+    type Vortex @beehiveTable(table_name: "vortices", pk_column: "vortex_id") {
+        vortex_id: ID!
+        name: String
+        timestamp: Datetime
+        tags: [String!]
+    }
+
+    type VortexList {
+        data: [Vortex!]
+        page_info: PageInfo!
+    }
+
+    input VortexInput {
+        name: String
+        timestamp: Datetime
+        tags: [String!]
+    }
+
     type Query {
         things(page: PaginationInput): ThingList! @beehiveList(target_type_name: "Thing")
         findThings(query: QueryExpression!, page: PaginationInput): ThingList @beehiveQuery(target_type_name: "Thing")
@@ -168,9 +186,13 @@ exports.schema = makeExecutableSchema({
 
         # nested objects
         findNests(query: QueryExpression!, page: PaginationInput): NestList @beehiveQuery(target_type_name: "Nest")
+
+        searchVortices(query: QueryExpression!, page: PaginationInput): VortexList @beehiveQuery(target_type_name: "Vortex")
     }
 
     type Mutation {
+        createVortex(vortex: VortexInput): Vortex! @beehiveCreate(target_type_name: "Vortex")
+
         makeNest(nest: NestInput): Nest! @beehiveCreate(target_type_name: "Nest")
         newThing(thing: ThingInput): Thing! @beehiveCreate(target_type_name: "Thing")
         replaceThing(thing_id: ID!, thing: ThingInput!): Thing! @beehiveReplace(target_type_name: "Thing")

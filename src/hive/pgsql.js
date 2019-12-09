@@ -2,6 +2,7 @@ const uuidv4 = require('uuid/v4')
 const { Pool } = require('pg')
 const pool = new Pool()
 const util = require('util')
+const cassandraMAP = require("cassandra-map");
 
 
 function applySystem(row) {
@@ -325,7 +326,7 @@ exports.deleteRelations = async function(schema, table_config, target_field_name
 
 exports.getRelatedItemsFiltered = async function(schema, table_config, target_field_name, value, query, pageInfo, explain_only) {
     if(table_config.table_type == "native") {
-        var where = `${target_field_name} = ${encodeValue(schema, table_config, target_field_name, query.value)} ${query ? "AND" : "" }`
+        var where = `${target_field_name} = ${encodeValue(schema, table_config, target_field_name, query.value, query.values)} ${query ? "AND" : "" }`
     } else {
         var where = `data @> '{"${target_field_name}":  "${value}"}' ${query ? "AND" : "" }`
     }
@@ -418,12 +419,16 @@ const opMap = {
     GT: ">",
     LTE: "<=",
     GTE: ">=",
+    CONTAINS: "@>",
+    CONTAIN_BY: "<@",
 }
 
-
-function encodeValue(schema, table_config, name, value) {
+function encodeValue(schema, table_config, name, value, values) {
     var field = table_config.type._fields[name]
     var col_type = mapType(schema, field)
+    if(values) {
+        return `ARRAY${cassandraMAP.stringify(values)}::varchar[]`
+    }
     if(col_type.startsWith("varchar") || col_type.startsWith("UUID") || col_type == "timestamp") {
         return `'${value}'`
     } else {
@@ -436,12 +441,24 @@ function renderQuery(query, table_config, schema) {
     if(query) {
         if(["EQ", "NE", "LIKE", "RE", "IN", "LT", "GT", "LTE", "GTE"].includes(query.operator)) {
             if(table_config.table_type == "native") {
-                return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value)}`
+                return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
             } else {
                 if(query.field.indexOf(".") >= 0) {
                     return `data #>>'{${query.field.split(".").join(",")}}' ${opMap[query.operator]} '${query.value}'`
                 }
-                return `data->>'${query.field}' ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value)}`
+                return `data->>'${query.field}' ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
+            }
+        } else if(["CONTAINS", "CONTAIN_BY"].includes(query.operator)) {
+            if(table_config.table_type == "native") {
+                return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
+            } else {
+                var box = {}
+                if(query.values) {
+                    box[query.field] =  query.values
+                } else {
+                    box[query.field] =  query.value
+                }
+                return `data::jsonb ${opMap[query.operator]} '${JSON.stringify(box)}'`
             }
         } else if(query.operator == "ISNULL") {
             if(table_config.table_type == "native") {
@@ -470,6 +487,9 @@ function renderQuery(query, table_config, schema) {
 exports.queryType = async function(schema, table_config, query, pageInfo, explain_only) {
     var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}  ${query ? "WHERE" : "" } ${renderQuery(query, table_config, schema)}`
     sql = renderPageInfo(sql, pageInfo, table_config, schema)
+    if(process.env.ENVIRONMENT == 'local') {
+        console.log(sql)
+    }
     if(explain_only) {
         return await pool.query("EXPLAIN " + sql)
     }
