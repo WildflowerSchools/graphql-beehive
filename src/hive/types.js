@@ -133,8 +133,10 @@ exports.BeehiveTypeDefs = `
         GT
         LTE
         GTE
+        ISNULL
+        NOTNULL
         CONTAINS
-        # CONTAINED_BY
+        CONTAINED_BY
     }
 
     input QueryExpression {

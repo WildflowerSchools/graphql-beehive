@@ -470,21 +470,13 @@ function renderQuery(query, table_config, schema) {
                 }
                 return subs.join(" OR ")
             }
-        // } else if(query.operator == "CONTAINED_BY") {
-        // THIS IS GARBAGE, NEED TO THINK HARDER
-        //     if(table_config.table_type == "native") {
-        //         return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
-        //     } else {
-        //         let subs = []
-        //         if(query.values) {
-        //             for(value of query.values) {
-        //                 subs.push(`data->>'${query.field}' ${opMap[query.operator]} '${value}'`)
-        //             }
-        //         } else {
-        //             subs.push(`data->>'${query.field}' ${opMap[query.operator]} '${query.value}'`)
-        //         }
-        //         return subs.join(" OR ")
-        //     }
+        } else if(query.operator == "CONTAINED_BY") {
+            if(table_config.table_type == "native") {
+                return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
+            } else {
+                return `data->'${query.field}' ${opMap[query.operator]} to_jsonb(${encodeValue(schema, table_config, query.field, query.value, query.values)})`
+
+            }
         } else if(query.operator == "CONTAINS") {
             if(table_config.table_type == "native") {
                 return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`

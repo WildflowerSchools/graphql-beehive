@@ -922,6 +922,30 @@ describe('Beehive general suite', function() {
 
             query = `
                     query {
+                        findThings(query: {operator: AND, children: [
+                                {field: "tags", operator: CONTAINED_BY, values: ["orange", "red"]},
+                                {field: "tags", operator: NE, values: []}
+                            ]}) {
+                            data {
+                                ... on Thing {
+                                    thing_id
+                                    tags
+                                }
+                            }
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+
+            console.log("CONTAINED_BY in a native column")
+            console.log(things.findThings.data)
+            expect(things.findThings).to.not.equal(null)
+            expect(things.findThings.data.length).to.equal(1)
+
+
+
+            query = `
+                    query {
                         findThings(query: {field: "tags", operator: EQ, values: ["red"]}) { 
                             data {
                                 ... on Thing {
@@ -1133,24 +1157,24 @@ describe('Beehive general suite', function() {
 
             
 
-            // query = `
-            //         query {
-            //             searchCollections(query: {field: "items", operator: CONTAINED_BY, values: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_2.vortex_id}", "${vorts_created.vortex_3.vortex_id}"]}) {
-            //                 data {
-            //                     collection_id
-            //                     items {
-            //                         ... on Vortex {
-            //                             vortex_id
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     `
-            // var collections = await request(uri, query)
-            // console.log(collections.searchCollections.data)
-            // expect(collections.searchCollections).to.not.equal(null)
-            // expect(collections.searchCollections.data.length).to.equal(2)
+            query = `
+                    query {
+                        searchCollections(query: {field: "items", operator: CONTAINED_BY, values: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_2.vortex_id}", "${vorts_created.vortex_3.vortex_id}"]}) {
+                            data {
+                                collection_id
+                                items {
+                                    ... on Vortex {
+                                        vortex_id
+                                    }
+                                }
+                            }
+                        }
+                    }
+                `
+            var collections = await request(uri, query)
+            console.log(collections.searchCollections.data)
+            expect(collections.searchCollections).to.not.equal(null)
+            expect(collections.searchCollections.data.length).to.equal(2)
 
          })
 
