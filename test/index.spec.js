@@ -827,6 +827,10 @@ describe('Beehive general suite', function() {
             expect(thing).to.not.equal(null)
             expect(thing.thing1.tags).to.eql(["new", "blue"])
             expect(thing.thing3.tags).to.equal(null)
+            let someThings = [
+                thing.thing1.thing_id,
+                thing.thing4.thing_id,
+            ]
             const mutateQuery = `
                     mutation {
                       thing1: tagThing(thing_id: "${thing.thing1.thing_id}", tags: ["orange"]) {
@@ -888,6 +892,24 @@ describe('Beehive general suite', function() {
                                     name
                                     tags
                                     dimensions
+                                }
+                            }
+                        }
+                    }
+                `
+            var things = await request(uri, query)
+            console.log(things.findThings.data)
+            expect(things.findThings).to.not.equal(null)
+            expect(things.findThings.data.length).to.equal(2)
+
+ 
+
+            query = `
+                    query {
+                        findThings(query: {field: "thing_id", operator: IN, values: ${JSON.stringify(someThings)}}) {
+                            data {
+                                ... on Thing {
+                                    thing_id
                                 }
                             }
                         }
@@ -1049,6 +1071,11 @@ describe('Beehive general suite', function() {
             var collections = await request(uri, createCollectionsQuery)
             console.log(collections)
             expect(collections).to.not.equal(null)
+            let collection_ids = [
+                collections.collection_1.collection_id,
+                collections.collection_6.collection_id,
+                collections.collection_7.collection_id,
+            ]
 
             query = `
                     query {
@@ -1087,7 +1114,45 @@ describe('Beehive general suite', function() {
             console.log(collections.searchCollections.data)
             expect(collections.searchCollections).to.not.equal(null)
             expect(collections.searchCollections.data.length).to.equal(2)
-        })
+
+            
+
+            query = `
+                    query {
+                        searchCollections(query: {field: "collection_id", operator: IN, values: ${JSON.stringify(collection_ids)}}) {
+                            data {
+                                collection_id
+                            }
+                        }
+                    }
+                `
+            var collections = await request(uri, query)
+            console.log(collections.searchCollections.data)
+            expect(collections.searchCollections).to.not.equal(null)
+            expect(collections.searchCollections.data.length).to.equal(3)
+
+            
+
+            // query = `
+            //         query {
+            //             searchCollections(query: {field: "items", operator: CONTAINED_BY, values: ["${vorts_created.vortex_1.vortex_id}", "${vorts_created.vortex_2.vortex_id}", "${vorts_created.vortex_3.vortex_id}"]}) {
+            //                 data {
+            //                     collection_id
+            //                     items {
+            //                         ... on Vortex {
+            //                             vortex_id
+            //                         }
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     `
+            // var collections = await request(uri, query)
+            // console.log(collections.searchCollections.data)
+            // expect(collections.searchCollections).to.not.equal(null)
+            // expect(collections.searchCollections.data.length).to.equal(2)
+
+         })
 
 
     })

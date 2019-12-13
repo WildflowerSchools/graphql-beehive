@@ -420,7 +420,7 @@ const opMap = {
     LTE: "<=",
     GTE: ">=",
     CONTAINS: "@>",
-    CONTAIN_BY: "<@",
+    CONTAINED_BY: "<@",
 }
 
 function encodeValue(schema, table_config, name, value, values) {
@@ -439,7 +439,7 @@ function encodeValue(schema, table_config, name, value, values) {
 
 function renderQuery(query, table_config, schema) {
     if(query) {
-        if(["EQ", "NE", "LIKE", "RE", "IN", "LT", "GT", "LTE", "GTE"].includes(query.operator)) {
+        if(["EQ", "NE", "LIKE", "RE", "LT", "GT", "LTE", "GTE"].includes(query.operator)) {
             if(table_config.table_type == "native") {
                 return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
             } else {
@@ -448,7 +448,44 @@ function renderQuery(query, table_config, schema) {
                 }
                 return `data->>'${query.field}' ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
             }
-        } else if(["CONTAINS", "CONTAIN_BY"].includes(query.operator)) {
+        } else if(query.operator === "IN") {
+            if(table_config.table_type == "native") {
+                if(query.values) {
+                    let vals = []
+                    for(var value of query.values) {
+                        vals.push(`'${value}'`)
+                    }
+                    return `${query.field} ${opMap[query.operator]} (${vals.join(",")})`
+                } else {
+                    return `${query.field} ${opMap[query.operator]} ('${query.value}')`
+                }
+            } else {
+                let subs = []
+                if(query.values) {
+                    for(value of query.values) {
+                        subs.push(`data->>'${query.field}' = '${value}'`)
+                    }
+                } else {
+                    subs.push(`data->>'${query.field}' = '${query.value}'`)
+                }
+                return subs.join(" OR ")
+            }
+        // } else if(query.operator == "CONTAINED_BY") {
+        // THIS IS GARBAGE, NEED TO THINK HARDER
+        //     if(table_config.table_type == "native") {
+        //         return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
+        //     } else {
+        //         let subs = []
+        //         if(query.values) {
+        //             for(value of query.values) {
+        //                 subs.push(`data->>'${query.field}' ${opMap[query.operator]} '${value}'`)
+        //             }
+        //         } else {
+        //             subs.push(`data->>'${query.field}' ${opMap[query.operator]} '${query.value}'`)
+        //         }
+        //         return subs.join(" OR ")
+        //     }
+        } else if(query.operator == "CONTAINS") {
             if(table_config.table_type == "native") {
                 return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
             } else {
@@ -487,7 +524,7 @@ function renderQuery(query, table_config, schema) {
 exports.queryType = async function(schema, table_config, query, pageInfo, explain_only) {
     var sql = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}  ${query ? "WHERE" : "" } ${renderQuery(query, table_config, schema)}`
     sql = renderPageInfo(sql, pageInfo, table_config, schema)
-    if(process.env.ENVIRONMENT == 'local') {
+    if(process.env.ENVIRONMENT === 'local') {
         console.log(sql)
     }
     if(explain_only) {

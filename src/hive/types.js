@@ -134,7 +134,7 @@ exports.BeehiveTypeDefs = `
         LTE
         GTE
         CONTAINS
-        # CONTAIN_BY # not ready to support this
+        # CONTAINED_BY
     }
 
     input QueryExpression {
