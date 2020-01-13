@@ -326,7 +326,7 @@ exports.deleteRelations = async function(schema, table_config, target_field_name
 
 exports.getRelatedItemsFiltered = async function(schema, table_config, target_field_name, value, query, pageInfo, explain_only) {
     if(table_config.table_type == "native") {
-        var where = `${target_field_name} = ${encodeValue(schema, table_config, target_field_name, query.value, query.values)} ${query ? "AND" : "" }`
+        var where = `${target_field_name} = ${encodeValue(schema, table_config, target_field_name, query ? query.value : value, query ? query.values : null)} ${query ? "AND" : "" }`
     } else {
         var where = `data @> '{"${target_field_name}":  "${value}"}' ${query ? "AND" : "" }`
     }
