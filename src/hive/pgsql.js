@@ -493,13 +493,13 @@ function renderQuery(query, table_config, schema) {
             if(table_config.table_type == "native") {
                 return `${query.field} IS NULL`
             } else {
-                return `(NOT(data ? '${query.field}') OR (data ? '${query.field}') is NULL)`
+                return `(NOT(data ? '${query.field}') OR data @> '{"${query.field}": null}')`
             }
         } else if(query.operator == "NOTNULL") {
             if(table_config.table_type == "native") {
                 return `${query.field} <> NULL`
             } else {
-                return `((data ? '${query.field}') AND (data ? '${query.field}') <> NULL)`
+                return `((data ? '${query.field}') AND NOT (data @> '{"${query.field}": null}'))`
             }
         } else {
             var childrenSQL = []
