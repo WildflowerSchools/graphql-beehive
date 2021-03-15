@@ -439,6 +439,15 @@ function encodeValue(schema, table_config, name, value, values) {
 
 function renderQuery(query, table_config, schema) {
     if(query) {
+        if(!query.children) {
+          var field = table_config.type._fields[query.field]
+          var isListField = false
+          try {
+            isListField = mapType(schema, field).endsWith("[]")
+          } catch(e) {
+            // pass
+          }
+        }
         if(["EQ", "NE", "LIKE", "RE", "LT", "GT", "LTE", "GTE"].includes(query.operator)) {
             if(table_config.table_type == "native") {
                 return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
@@ -449,7 +458,7 @@ function renderQuery(query, table_config, schema) {
                 return `data->>'${query.field}' ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
             }
         } else if(query.operator === "IN") {
-            if(table_config.table_type == "native") {
+            if(table_config.table_type == "native"  && !isListField) {
                 if(query.values) {
                     let vals = []
                     for(var value of query.values) {
@@ -471,15 +480,15 @@ function renderQuery(query, table_config, schema) {
                 return subs.join(" OR ")
             }
         } else if(query.operator == "CONTAINED_BY") {
-            if(table_config.table_type == "native") {
-                return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
+            if(table_config.table_type == "native"  && !isListField) {
+                return `${query.field} IN ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
             } else {
                 return `data->'${query.field}' ${opMap[query.operator]} to_jsonb(${encodeValue(schema, table_config, query.field, query.value, query.values)})`
 
             }
         } else if(query.operator == "CONTAINS") {
-            if(table_config.table_type == "native") {
-                return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
+            if(table_config.table_type == "native"  && !isListField) {
+                return `${query.field} IN ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
             } else {
                 var box = {}
                 if(query.values) {
@@ -601,7 +610,7 @@ exports.putType = async function(schema, table_config, pk, input) {
                     values.push(forDB[key])
                 }
             }
-            
+
             var sql = `UPDATE ${schema._beehive.schema_name}.${table_config.table_name} SET ${doSets(fields, 2)}, last_modified = CURRENT_TIMESTAMP WHERE ${pk_column} = $1`
             console.log(sql)
             await client.query(sql, values)
