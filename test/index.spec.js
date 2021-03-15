@@ -65,14 +65,16 @@ before(async function() {
             5432: 5432
           }
         })
+        console.log("waiting for postgres")
         // wait for it to come up
         for (let i=0; i < 4; i++) {
             var ok = await status()
             if (ok) {
-                await sleep(10000)
+                await sleep(1000)
                 console.log("returning child")
                 return child
             }
+            console.log("still waiting")
             await sleep(3000)
         }
 
@@ -86,7 +88,9 @@ before(async function() {
 
 after(async function(){
     console.log("shutting down postgres and express")
-    dbContainer.destroy()
+    if(dbContainer) {
+        dbContainer.destroy()
+    }
 })
 
 
@@ -882,7 +886,7 @@ describe('Beehive general suite', function() {
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(4)
 
-
+            
             query = `
                     query {
                         findThings(query: {field: "tags", operator: CONTAINS, values: ["new"]}) {
@@ -902,7 +906,7 @@ describe('Beehive general suite', function() {
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(2)
 
- 
+
 
             query = `
                     query {
@@ -946,7 +950,7 @@ describe('Beehive general suite', function() {
 
             query = `
                     query {
-                        findThings(query: {field: "tags", operator: EQ, values: ["red"]}) { 
+                        findThings(query: {field: "tags", operator: EQ, values: ["red"]}) {
                             data {
                                 ... on Thing {
                                     thing_id
@@ -1139,7 +1143,7 @@ describe('Beehive general suite', function() {
             expect(collections.searchCollections).to.not.equal(null)
             expect(collections.searchCollections.data.length).to.equal(2)
 
-            
+
 
             query = `
                     query {
@@ -1155,7 +1159,7 @@ describe('Beehive general suite', function() {
             expect(collections.searchCollections).to.not.equal(null)
             expect(collections.searchCollections.data.length).to.equal(3)
 
-            
+
 
             query = `
                     query {
