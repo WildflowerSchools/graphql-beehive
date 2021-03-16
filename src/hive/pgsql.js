@@ -481,14 +481,30 @@ function renderQuery(query, table_config, schema) {
             }
         } else if(query.operator == "CONTAINED_BY") {
             if(table_config.table_type == "native"  && !isListField) {
-                return `${query.field} IN ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
+                if(query.values) {
+                    let vals = []
+                    for(var value of query.values) {
+                        vals.push(`'${value}'`)
+                    }
+                    return `${query.field} IN (${vals.join(",")})`
+                } else {
+                    return `${query.field} = '${query.value}'`
+                }
             } else {
                 return `data->'${query.field}' ${opMap[query.operator]} to_jsonb(${encodeValue(schema, table_config, query.field, query.value, query.values)})`
 
             }
         } else if(query.operator == "CONTAINS") {
             if(table_config.table_type == "native"  && !isListField) {
-                return `${query.field} IN ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
+                if(query.values) {
+                    let vals = []
+                    for(var value of query.values) {
+                        vals.push(`'${value}'`)
+                    }
+                    return `${query.field} IN (${vals.join(",")})`
+                } else {
+                    return `${query.field} = '${query.value}'`
+                }
             } else {
                 var box = {}
                 if(query.values) {
