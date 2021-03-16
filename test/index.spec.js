@@ -143,55 +143,167 @@ describe('Beehive general suite', function() {
         })
     })
 
-    describe('delete cascading', function() {
+        describe('delete cascading', function() {
 
-        it('make a thing and delete it', async function() {
-            const createQuery = `
+            it('make a thing and delete it', async function() {
+                const createQuery = `
+                        mutation {
+                          newThing(thing: {name: "testThingToDelete"}) {
+                            thing_id
+                          }
+                        }
+                    `
+                var thing = await request(uri, createQuery)
+                expect(thing).to.not.equal(null)
+                expect(thing.newThing.thing_id).to.not.equal(null)
+
+                var relatedQuery = `
                     mutation {
-                      newThing(thing: {name: "testThingToDelete"}) {
-                        thing_id
-                      }
+                      newRelatedThing(relatedThing: {name: "relatedThingToDelete", subject: "delete", thing: "${thing.newThing.thing_id}"}) {
+                            rel_thing_id
+                        }
                     }
                 `
-            var thing = await request(uri, createQuery)
-            expect(thing).to.not.equal(null)
-            expect(thing.newThing.thing_id).to.not.equal(null)
+                var relResponse = await request(uri, relatedQuery)
+                expect(relResponse).to.not.equal(null)
+                expect(relResponse.newRelatedThing.rel_thing_id).to.not.equal(null)
 
-            var relatedQuery = `
-                mutation {
-                  newRelatedThing(relatedThing: {name: "relatedThingToDelete", subject: "delete", thing: "${thing.newThing.thing_id}"}) {
-                        rel_thing_id
+                var deleteQuery = `
+                    mutation {
+                        deleteThingCascading(thing_id: "${thing.newThing.thing_id}") {
+                            status
+                            error
+                        }
                     }
-                }
-            `
-            var relResponse = await request(uri, relatedQuery)
-            expect(relResponse).to.not.equal(null)
-            expect(relResponse.newRelatedThing.rel_thing_id).to.not.equal(null)
+                `
+                var deleteResponse = await request(uri, deleteQuery)
+                expect(deleteResponse).to.not.equal(null)
+                expect(deleteResponse.deleteThingCascading.status).to.not.equal(null)
+                expect(deleteResponse.deleteThingCascading.status).to.equal("ok")
 
-            var deleteQuery = `
-                mutation {
-                    deleteThingCascading(thing_id: "${thing.newThing.thing_id}") {
-                        status
-                        error
+                var getQuery = `
+                    query {
+                        getRelatedThing(rel_thing_id: "${relResponse.newRelatedThing.rel_thing_id}") {
+                            rel_thing_id
+                        }
                     }
-                }
-            `
-            var deleteResponse = await request(uri, deleteQuery)
-            expect(deleteResponse).to.not.equal(null)
-            expect(deleteResponse.deleteThingCascading.status).to.not.equal(null)
-            expect(deleteResponse.deleteThingCascading.status).to.equal("ok")
-
-            var getQuery = `
-                query {
-                    getRelatedThing(rel_thing_id: "${relResponse.newRelatedThing.rel_thing_id}") {
-                        rel_thing_id
-                    }
-                }
-            `
-            var getResponse = await request(uri, getQuery)
-            expect(getQuery.getRelatedThing).to.equal(undefined)
+                `
+                var getResponse = await request(uri, getQuery)
+                expect(getQuery.getRelatedThing).to.equal(undefined)
+            })
         })
-    })
+
+
+            describe('relation CONTAINED_BY', function() {
+
+                it('make some things', async function() {
+                    const createQuery = `
+                            mutation {
+                              thing1: newThing(thing: {name: "thing1"}) {
+                                thing_id
+                              }
+                              thing2: newThing(thing: {name: "thing2"}) {
+                                thing_id
+                              }
+                              thing3: newThing(thing: {name: "thing3"}) {
+                                thing_id
+                              }
+                            }
+                        `
+                    var things = await request(uri, createQuery)
+                    expect(things).to.not.equal(null)
+                    expect(things.thing1.thing_id).to.not.equal(null)
+
+                    var relatedQuery = `
+                        mutation {
+                          relatedThing1: newRelatedThing(relatedThing: {name: "relatedThing1", subject: "delete", thing: "${things.thing1.thing_id}"}) {
+                              rel_thing_id
+                              thing {
+                                thing_id
+                              }
+                          }
+                          relatedThing2: newRelatedThing(relatedThing: {name: "relatedThing2", subject: "delete", thing: "${things.thing1.thing_id}"}) {
+                              rel_thing_id
+                              thing {
+                                thing_id
+                              }
+                          }
+                          relatedThing3: newRelatedThing(relatedThing: {name: "relatedThing3", subject: "delete", thing: "${things.thing2.thing_id}"}) {
+                              rel_thing_id
+                              thing {
+                                thing_id
+                              }
+                          }
+                          relatedThing4: newRelatedThing(relatedThing: {name: "relatedThing4", subject: "delete", thing: "${things.thing3.thing_id}"}) {
+                              rel_thing_id
+                              thing {
+                                thing_id
+                              }
+                          }
+                        }
+                    `
+                    var relResponse = await request(uri, relatedQuery)
+                    expect(relResponse).to.not.equal(null)
+                    expect(relResponse.relatedThing1.rel_thing_id).to.not.equal(null)
+                    expect(relResponse.relatedThing1.thing.thing_id).to.not.equal(undefined)
+                    expect(relResponse.relatedThing1.thing.thing_id).to.not.equal(null)
+                    expect(relResponse.relatedThing1.thing.thing_id).to.equal(things.thing1.thing_id)
+
+                    var getQuery = `
+                    query {
+                      relatedThings {
+                        data {
+                          rel_thing_id
+                          thing {
+                            thing_id
+                          }
+                        }
+                      }
+                    }
+                    `
+                    var getResponse = await request(uri, getQuery)
+                    console.log(JSON.stringify(getResponse))
+                    var getQuery = `
+                        query {
+                            searhRelatedThings(query: {field: "thing", operator: CONTAINED_BY, values: ["${things.thing1.thing_id}", "${things.thing2.thing_id}"]}) {
+                                    data {
+                                        rel_thing_id
+                                        thing {
+                                            thing_id
+                                          }
+                                        }
+                                    }
+                                }
+                            `
+                    try {
+                      var getResponse = await request(uri, getQuery)
+                      console.log(JSON.stringify(getResponse))
+
+
+                      expect(getResponse.searhRelatedThings).to.not.equal(null)
+                      expect(getResponse.searhRelatedThings.data.length).to.equal(3)
+                    } finally {
+                      var deleteQuery = `
+                      mutation {
+                        delThing1: deleteThingCascading(thing_id: "${things.thing1.thing_id}") {
+                          status
+                          error
+                        }
+                        delThing2: deleteThingCascading(thing_id: "${things.thing2.thing_id}") {
+                          status
+                          error
+                        }
+                        delThing3: deleteThingCascading(thing_id: "${things.thing3.thing_id}") {
+                          status
+                          error
+                        }
+                      }
+                      `
+                      var deleteResponse = await request(uri, deleteQuery)
+                      expect(deleteResponse).to.not.equal(null)
+                    }
+                })
+            })
 
     describe('things', function() {
 
@@ -886,7 +998,7 @@ describe('Beehive general suite', function() {
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(4)
 
-            
+
             query = `
                     query {
                         findThings(query: {field: "tags", operator: CONTAINS, values: ["new"]}) {

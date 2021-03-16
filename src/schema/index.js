@@ -196,6 +196,7 @@ exports.schema = makeExecutableSchema({
         getThing(thing_id: String!): Thing @beehiveGet(target_type_name: "Thing")
         relatedThings(page: PaginationInput): RelatedThingsList! @beehiveList(target_type_name: "RelatedThing")
         getRelatedThing(rel_thing_id: ID): RelatedThing @beehiveGet(target_type_name: "RelatedThing")
+        searhRelatedThings(query: QueryExpression!, page: PaginationInput): RelatedThingsList! @beehiveQuery(target_type_name: "RelatedThing")
 
         # assignment things
         getAssignments(page: PaginationInput): AssignmentList @beehiveList(target_type_name: "Assignment")
