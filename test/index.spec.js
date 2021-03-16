@@ -31,6 +31,10 @@ if (process.env.BEEHIVE_MOCK_STREAM == "yes") {
     kinesis_mock.createStream({StreamName: "beehive_stream", ShardCount: 1}, console.log)
 }
 
+pool.on('error', (err) => {
+  console.error('An idle client has experienced an error', err.stack)
+})
+
 
 before(async function() {
     // helper for waiting for things
@@ -88,6 +92,7 @@ before(async function() {
 
 after(async function(){
     console.log("shutting down postgres and express")
+    pool.end()
     if(dbContainer) {
         dbContainer.destroy()
     }
