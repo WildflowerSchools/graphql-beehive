@@ -449,7 +449,7 @@ function renderQuery(query, table_config, schema) {
           }
         }
         if(["EQ", "NE", "LIKE", "RE", "LT", "GT", "LTE", "GTE"].includes(query.operator)) {
-            if(table_config.table_type == "native") {
+            if(table_config.table_type == "native" && query.field.indexOf(".") < 0) {
                 return `${query.field} ${opMap[query.operator]} ${encodeValue(schema, table_config, query.field, query.value, query.values)}`
             } else {
                 if(query.field.indexOf(".") >= 0) {
