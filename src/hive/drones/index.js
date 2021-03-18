@@ -35,7 +35,7 @@ class Event {
 
 
 exports.sendEvent = async function(event) {
-    // console.log(event);
+    console.log(event);
     const DEBUG = process.env.DEBUG == "yes"
     client.putRecord({
         PartitionKey: event.partition_key,

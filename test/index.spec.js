@@ -50,52 +50,61 @@ before(async function() {
           return false})
     }
 
-    // do the deed, get postgreSQL running
-    dbContainer = await (async function() {
-        console.log('starting postgres')
-        var isUp = await status()
-        if (isUp) {
-            console.log('postgres is already up')
-            return true
-        }
-        var child = run('postgres:10.4', {
-          remove: true,
-          env: {
-              POSTGRES_PASSWORD: "iamaninsecurepassword",
-              POSTGRES_USER: "beehive_user",
-              POSTGRES_DB: "beehive-tests-integrated",
-          },
-          ports: {
-            5432: 5432
+      // do the deed, get postgreSQL running
+      dbContainer = await (async function() {
+          console.log('starting postgres')
+          var isUp = await status()
+          if (isUp) {
+              console.log('postgres is already up')
+              return null
           }
-        })
-        console.log("waiting for postgres")
-        // wait for it to come up
-        for (let i=0; i < 4; i++) {
-            var ok = await status()
-            if (ok) {
-                await sleep(1000)
-                console.log("returning child")
-                return child
-            }
-            console.log("still waiting")
-            await sleep(3000)
-        }
+          var child
+          if(!process.env.DRONE) {
+            child = run('postgres:10.4', {
+              remove: true,
+              env: {
+                  POSTGRES_PASSWORD: "iamaninsecurepassword",
+                  POSTGRES_USER: "beehive_user",
+                  POSTGRES_DB: "beehive-tests-integrated",
+              },
+              ports: {
+                5432: 5432
+              }
+            })
+          }
 
-        // if it hasn't come up destroy it
-        child.destroy()
-        throw Error("postgres didn't start")
-    })()
+          console.log("waiting for postgres")
+          // wait for it to come up
+          for (let i=0; i < 4; i++) {
+              var ok = await status()
+              if (ok) {
+                  await sleep(1000)
+                  console.log("returning child")
+                  return child
+              }
+              console.log("still waiting")
+              await sleep(3000)
+          }
+
+          if(child) {
+            child.destroy()
+          }
+          throw Error("postgres didn't start")
+      })()
+
     return
 })
 
 
 after(async function(){
-    console.log("shutting down postgres and express")
+    console.log("shutting down postgres")
     pool.end()
-    if(dbContainer) {
+    if(!process.env.DRONE) {
+      if(dbContainer) {
         dbContainer.destroy()
+      }
     }
+    console.log("things should be stopping now")
 })
 
 
@@ -109,6 +118,7 @@ describe('Beehive general suite', function() {
 
     after(async function() {
         expressApp.close()
+        console.log("express closed")
     })
 
     describe('delete', function() {
@@ -1308,8 +1318,8 @@ describe('Beehive no schema test', function(){
 
     describe('exceptions', function() {
         it('should fail', async function() {
-
             expect(function() { require("../src/schema/no_schema")}).to.throw(TypeError)
         })
     })
 })
+

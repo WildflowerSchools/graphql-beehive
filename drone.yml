@@ -1,0 +1,33 @@
+kind: pipeline
+type: kubernetes
+name: drone
+service_account_name: default
+
+metadata:
+  namespace: drone
+
+steps:
+- name: tests/coverage
+  image: node:12.13.0
+  environment:
+    DRONE: "true"
+    BEEHIVE_MOCK_STREAM: "yes"
+  commands:
+  - env
+  - npm install
+  - npm run coverage
+- name: npm
+  image: plugins/npm
+  settings:
+    token:
+      from_secret: NPM_TOKEN
+    email: tech@wildflowerschools.org
+
+
+services:
+- name: postgres-ci
+  image: postgres:10.4
+  environment:
+    POSTGRES_PASSWORD: "iamaninsecurepassword"
+    POSTGRES_USER: "beehive_user"
+    POSTGRES_DB: "beehive-tests-integrated"
