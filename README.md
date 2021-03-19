@@ -1,3 +1,6 @@
+
+[![Build Status](https://drone.wildflower-tech.org/api/badges/WildflowerSchools/graphql-beehive/status.svg)](https://drone.wildflower-tech.org/WildflowerSchools/graphql-beehive)
+
 # GraphQL-Beehive
 -----------------------------------
 
