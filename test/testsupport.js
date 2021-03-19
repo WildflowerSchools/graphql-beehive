@@ -1,7 +1,7 @@
 const { Pool } = require('pg')
 const pool = new Pool()
 
-const { BeehiveResolvers } = require("../src/hive")
+const { BeehiveResolvers, BeehivePlugin } = require("../src/hive")
 
 
 exports.cleanPostgres = async function() {
@@ -54,14 +54,15 @@ exports.server = async function(schema) {
 
     const server = new ApolloServer({
         schema,
-        formatError: error => {
-            console.log(error);
-            return error;
-        },
-        formatResponse: response => {
-            console.log(response);
-            return response;
-        },
+        // formatError: error => {
+        //     console.log(error);
+        //   return error;
+        // },
+        // formatResponse: response => {
+        //     console.log(response);
+        //     return response;
+        // },
+        plugins: [BeehivePlugin],
     });
 
     const app = express();

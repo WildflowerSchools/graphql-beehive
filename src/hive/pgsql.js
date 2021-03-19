@@ -6,6 +6,7 @@ const cassandraMAP = require("cassandra-map");
 
 
 function applySystem(row) {
+    console.log(row)
     var obj = row.data
     obj.system = {
         created: row.created,
@@ -151,11 +152,9 @@ exports.ensureDatabase = async function(schema) {
 }
 
 
-async function setGlobalLookup(schema, table_config, uid) {
-    const client = await pool.connect()
+async function setGlobalLookup(schema, table_config, uid, client) {
     const target_type_name = table_config.type.name
     try {
-        await client.query('BEGIN')
         await client.query(`INSERT INTO ${schema._beehive.schema_name}.beehive_system_global_lookups (obj_uid, type_name)
                                 VALUES ($1, $2)
                                 ON CONFLICT (obj_uid)
@@ -163,13 +162,9 @@ async function setGlobalLookup(schema, table_config, uid) {
                            uid,
                            target_type_name,
                            ])
-        await client.query('COMMIT')
     } catch (e) {
         console.log("something failed")
-        await client.query('ROLLBACK')
         throw e
-    } finally {
-        client.release()
     }
 }
 
@@ -184,8 +179,7 @@ exports.inferType = async function(schema, uid) {
 
 
 
-exports.insertType = async function(schema, table_config, input) {
-    const client = await pool.connect()
+exports.insertType = async function(client, schema, table_config, input) {
     const pk_column = table_config.pk_column
     const target_type_name = table_config.type.name
     var pk = input[pk_column]
@@ -206,8 +200,6 @@ exports.insertType = async function(schema, table_config, input) {
                 forDB[field_name] = input[field_name]
             }
         }
-
-        await client.query('BEGIN')
 
         if(table_config.is_assignment && table_config.exclusive) {
             const start = forDB[table_config.start_field_name] = new Date(forDB[table_config.start_field_name]).toISOString()
@@ -269,16 +261,16 @@ exports.insertType = async function(schema, table_config, input) {
                                target_type_name,
                                ])
         }
-        await client.query('COMMIT')
-        await setGlobalLookup(schema, table_config, pk)
+        await setGlobalLookup(schema, table_config, pk, client)
+        // await client.query('COMMIT')
     } catch (e) {
         console.log("something failed")
-        await client.query('ROLLBACK')
+        // await client.query('ROLLBACK')
         throw e
-    } finally {
-        client.release()
+    // } finally {
+    //     client.release()
     }
-    var things = await pool.query(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${pk_column} = $1`, [pk])
+    var things = await client.query(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${pk_column} = $1`, [pk])
     return applySystem(things.rows[0])
 }
 
@@ -586,8 +578,7 @@ function doSets(fields, offset) {
     return sets.join(", ")
 }
 
-exports.putType = async function(schema, table_config, pk, input) {
-    const client = await pool.connect()
+exports.putType = async function(client, schema, table_config, pk, input) {
     const pk_column = table_config.pk_column
     try {
         const target_type_name = table_config.type.name
@@ -601,7 +592,6 @@ exports.putType = async function(schema, table_config, pk, input) {
             }
         }
 
-        await client.query('BEGIN')
         if(table_config.table_type == "jsonb") {
             await client.query(`UPDATE ${schema._beehive.schema_name}.${table_config.table_name}
                                     SET data = $2,
@@ -631,21 +621,21 @@ exports.putType = async function(schema, table_config, pk, input) {
             console.log(sql)
             await client.query(sql, values)
         }
-        await client.query('COMMIT')
-        await setGlobalLookup(schema, table_config, pk)
+        await setGlobalLookup(schema, table_config, pk, client)
+        // await client.query('COMMIT')
     } catch (e) {
         console.log("something failed")
-        await client.query('ROLLBACK')
+        // await client.query('ROLLBACK')
         throw e
-    } finally {
-        client.release()
+    // } finally {
+    //     client.release()
     }
-    var things = await pool.query(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${pk_column} = $1`, [pk])
+    var things = await client.query(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${pk_column} = $1`, [pk])
     return applySystem(things.rows[0])
 }
 
 
-exports.patchType = async function(schema, table_config, pk, input) {
+exports.patchType = async function(client, schema, table_config, pk, input) {
     var current = await exports.getItem(schema, table_config, pk)
     if(!current) {
         throw Error(`Object of type ${table_config.type.name} with primary key ${pk} not found`)
@@ -653,11 +643,11 @@ exports.patchType = async function(schema, table_config, pk, input) {
     for (var field_name of Object.keys(input)) {
         current[field_name] = input[field_name]
     }
-    return exports.putType(schema, table_config, pk, current)
+    return exports.putType(client, schema, table_config, pk, current)
 }
 
 
-exports.appendToListField = async function(schema, table_config, object_id, target_field, input) {
+exports.appendToListField = async function(client, schema, table_config, object_id, target_field, input) {
     var current = await exports.getItem(schema, table_config, object_id)
     if(!current) {
         throw Error(`Object of type ${table_config.type.name} with primary key ${object_id} not found`)
@@ -669,11 +659,11 @@ exports.appendToListField = async function(schema, table_config, object_id, targ
     if(vector==null) vector = []
     input = input.filter(function(el) { return !vector.includes(el) })
     current[target_field] = vector.concat(input)
-    return exports.putType(schema, table_config, object_id, current)
+    return exports.putType(client, schema, table_config, object_id, current)
 }
 
 
-exports.deleteFromListField = async function(schema, table_config, object_id, target_field, input) {
+exports.deleteFromListField = async function(client, schema, table_config, object_id, target_field, input) {
     var current = await exports.getItem(schema, table_config, object_id)
     if(!current) {
         throw Error(`Object of type ${table_config.type.name} with primary key ${object_id} not found`)
@@ -683,7 +673,7 @@ exports.deleteFromListField = async function(schema, table_config, object_id, ta
     }
     if(current[target_field]==null) current[target_field] = []
     current[target_field] = current[target_field].filter(function(el) { return !input.includes(el) })
-    return exports.putType(schema, table_config, object_id, current)
+    return exports.putType(client, schema, table_config, object_id, current)
 }
 
 

@@ -295,9 +295,14 @@ class BeehiveCreateDirective extends SchemaDirectiveVisitor {
             if(s3FileFields) {
                 await graphS3.processS3Files(input, s3FileFields, target_type_name, schema)
             }
+            console.log("================================================================================================")
+            console.log("================================================================================================")
+            console.log(context)
+            console.log("================================================================================================")
+            console.log("================================================================================================")
             return new Promise(async function(resolve, reject) {
                 try {
-                    var result = await insertType(schema, table_config, input)
+                    var result = await insertType(await context.client(), schema, table_config, input)
                     if(EVENTS) {
                         const evt = new drones.Event("beehive-object-lifecycle", target_type_name, result[table_config.pk_column], "CREATE")
                         try {
@@ -339,7 +344,7 @@ class BeehiveReplaceDirective extends SchemaDirectiveVisitor {
             }
             return new Promise(async function(resolve, reject) {
                 try {
-                    var result = await putType(schema, table_config, args[table_config.pk_column], input)
+                    var result = await putType(await context.client(), schema, table_config, args[table_config.pk_column], input)
                     if(EVENTS) {
                         const evt = new drones.Event("beehive-object-lifecycle", target_type_name, args[table_config.pk_column], "UPDATE")
                         try {
@@ -380,7 +385,7 @@ class BeehiveUpdateDirective extends SchemaDirectiveVisitor {
             }
             return new Promise(async function(resolve, reject) {
                 try {
-                    var result = await patchType(schema, table_config, args[table_config.pk_column], input)
+                    var result = await patchType(await context.client(), schema, table_config, args[table_config.pk_column], input)
                     if(EVENTS) {
                         const evt = new drones.Event("beehive-object-lifecycle", target_type_name, args[table_config.pk_column], "UPDATE")
                         try {
@@ -713,7 +718,7 @@ class BeehiveListFieldAppendDirective extends SchemaDirectiveVisitor {
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
             var input = args[input_field_name]
-            return appendToListField(schema, table_config, args[table_config.pk_column], field_name, input)
+            return appendToListField(await context.client(), schema, table_config, args[table_config.pk_column], field_name, input)
         }
     }
 
@@ -728,7 +733,7 @@ class BeehiveListFieldDeleteDirective extends SchemaDirectiveVisitor {
         field.resolve = async function (obj, args, context, info) {
             const table_config = schema._beehive.tables[target_type_name]
             var input = args[input_field_name]
-            return deleteFromListField(schema, table_config, args[table_config.pk_column], field_name, input)
+            return deleteFromListField(await context.client(), schema, table_config, args[table_config.pk_column], field_name, input)
         }
     }
 
