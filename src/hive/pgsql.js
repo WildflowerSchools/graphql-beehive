@@ -351,7 +351,7 @@ function renderPageInfo(query, pageInfo, table_config, schema) {
             result += ` ORDER BY ${sorts.join(", ")}`
         } else {
             // order by creation date by default, we do this so things are predictable with pagination if no sorting is specified
-            result += ` ORDER BY created ASC`
+            result += ` ORDER BY created ASC, {table_config.pk_column} ASC`
         }
         if(table_config.table_type != "native") {
             result = `WITH temp as (${result}) SELECT * FROM temp`

@@ -18,6 +18,12 @@ steps:
   - npm run coverage
 - name: npm
   image: plugins/npm
+  when:
+    branch:
+    - master
+    event:
+      exclude:
+      - pull_request
   settings:
     token:
       from_secret: NPM_TOKEN
