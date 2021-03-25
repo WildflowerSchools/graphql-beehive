@@ -286,7 +286,11 @@ exports.listType = async function(schema, table_config, pageInfo) {
 
 
 exports.getItem = async function(schema, table_config, pk) {
-    var things = await pool.query(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`, [pk])
+    var things = await pool.query({
+      name: `fetch-${schema._beehive.schema_name}-${table_config.table_name}`,
+      query: `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`,
+      values: [pk],
+    })
 
     if(things.rows.length) {
         return applySystem(things.rows[0])
@@ -351,7 +355,7 @@ function renderPageInfo(query, pageInfo, table_config, schema) {
             result += ` ORDER BY ${sorts.join(", ")}`
         } else {
             // order by creation date by default, we do this so things are predictable with pagination if no sorting is specified
-            result += ` ORDER BY created ASC, {table_config.pk_column} ASC`
+            result += ` ORDER BY created ASC, ${table_config.pk_column} ASC`
         }
         if(table_config.table_type != "native") {
             result = `WITH temp as (${result}) SELECT * FROM temp`
