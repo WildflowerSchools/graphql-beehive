@@ -13,7 +13,6 @@ steps:
     DRONE: "true"
     BEEHIVE_MOCK_STREAM: "yes"
   commands:
-  - env
   - npm install
   - npm run coverage
 - name: npm

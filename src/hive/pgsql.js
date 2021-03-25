@@ -357,10 +357,10 @@ function renderPageInfo(query, pageInfo, table_config, schema) {
             result = `WITH temp as (${result}) SELECT * FROM temp`
         }
         // set a default max to 20 and an upper limit to the max at 1000 to prevent too much data from being loaded
-        if(pageInfo.max && pageInfo.max <= 100) {
+        if(pageInfo.max && pageInfo.max <= 100000) {
             result = `${result} LIMIT ${pageInfo.max}`
-        } else if(pageInfo.max && pageInfo.max > 100) {
-            result = `${result} LIMIT 1000`
+        } else if(pageInfo.max && pageInfo.max > 100000) {
+            result = `${result} LIMIT 100000`
         } else {
             result = `${result} LIMIT 20`
         }
