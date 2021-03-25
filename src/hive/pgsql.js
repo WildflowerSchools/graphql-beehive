@@ -8,7 +8,7 @@ var type_cache = new LRU(5000);
 
 
 function applySystem(row) {
-    console.log(row)
+    // console.log(row)
     var obj = row.data
     obj.system = {
         created: row.created,
@@ -174,7 +174,11 @@ exports.inferType = async function(schema, uid) {
     var type_name = type_cache.get(uid)
     if(type_name) return type_name
     var query = `SELECT type_name FROM ${schema._beehive.schema_name}.beehive_system_global_lookups WHERE obj_uid = $1`
-    var things = await pool.query(query, [uid])
+    var things = await pool.query({
+      name: "beehive_system_global_lookups",
+      text: query,
+      values: [uid]
+    })
 
     if(things.rows.length) {
         var type_name = things.rows[0].type_name
@@ -284,6 +288,9 @@ exports.insertType = async function(client, schema, table_config, input) {
 
 exports.listType = async function(schema, table_config, pageInfo) {
     var things = await pool.query(renderPageInfo(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name}`, pageInfo, table_config, schema))
+    if(!things.hasOwnProperty('rows') && things.length==3) {
+      things = things[1]
+    }
     var rows = []
     for(var row of things.rows) {
         rows.push(applySystem(row))
@@ -295,12 +302,12 @@ exports.listType = async function(schema, table_config, pageInfo) {
 exports.getItem = async function(schema, table_config, pk) {
     var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`
     // console.log(query)
-    // var things = await pool.query({
-    //   name: `fetch-${schema._beehive.schema_name}-${table_config.table_name}`,
-    //   query: query,
-    //   values: [pk],
-    // })
-    var things = await pool.query(query, [pk])
+    var things = await pool.query({
+      name: `fetch-${schema._beehive.schema_name}-${table_config.table_name}-by-id`,
+      text: query,
+      values: [pk],
+    })
+    // var things = await pool.query(query, [pk])
 
     if(things.rows.length) {
         return applySystem(things.rows[0])
@@ -342,6 +349,9 @@ exports.getRelatedItemsFiltered = async function(schema, table_config, target_fi
         return await pool.query("EXPLAIN " + sql_query)
     }
     var things = await pool.query(sql_query)
+    if(!things.hasOwnProperty('rows') && things.length==3) {
+      things = things[1]
+    }
     var rows = []
     for(var row of things.rows) {
         rows.push(applySystem(row))
@@ -380,6 +390,9 @@ function renderPageInfo(query, pageInfo, table_config, schema) {
         }
         if(pageInfo.cursor) {
             result += ` ${decodeCursor(pageInfo.cursor)}`
+        }
+        if(pageInfo.set_rpc) {
+          result = "SET SESSION random_page_cost = 1;" + result + "; SET SESSION random_page_cost = DEFAULT;"
         }
     }
     return result
@@ -554,6 +567,9 @@ exports.queryType = async function(schema, table_config, query, pageInfo, explai
         return await pool.query("EXPLAIN " + sql)
     }
     var things = await pool.query(sql)
+    if(!things.hasOwnProperty('rows') && things.length==3) {
+      things = things[1]
+    }
     var rows = []
     for(var row of things.rows) {
         rows.push(applySystem(row))
@@ -576,6 +592,9 @@ exports.simpleQueryType = async function(schema, table_config, query, pageInfo) 
         var sql = renderPageInfo(`SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE data @> '${JSON.stringify(query)}'`, pageInfo, table_config, schema)
     }
     var things = await pool.query(sql)
+    if(!things.hasOwnProperty('rows') && things.length==3) {
+      things = things[1]
+    }
     var rows = []
     for(var row of things.rows) {
         rows.push(applySystem(row))

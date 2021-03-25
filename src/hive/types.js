@@ -87,6 +87,8 @@ exports.BeehiveTypeDefs = `
         max: Int
         cursor: String
         sort: [SortInput!]
+        # sets the raandom_page_cost to 1 for this query
+        set_rpc: Boolean
     }
 
     input SortInput {
@@ -295,11 +297,11 @@ class BeehiveCreateDirective extends SchemaDirectiveVisitor {
             if(s3FileFields) {
                 await graphS3.processS3Files(input, s3FileFields, target_type_name, schema)
             }
-            console.log("================================================================================================")
-            console.log("================================================================================================")
-            console.log(context)
-            console.log("================================================================================================")
-            console.log("================================================================================================")
+            // console.log("================================================================================================")
+            // console.log("================================================================================================")
+            // console.log(context)
+            // console.log("================================================================================================")
+            // console.log("================================================================================================")
             return new Promise(async function(resolve, reject) {
                 try {
                     var result = await insertType(await context.client(), schema, table_config, input)

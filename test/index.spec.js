@@ -151,7 +151,7 @@ describe('Beehive general suite', function() {
                 }
             `
             var deleteResponse = await request(uri, deleteQuery)
-            console.log(deleteResponse)
+            // console.log(deleteResponse)
             expect(deleteResponse).to.not.equal(null)
             expect(deleteResponse.deleteThing.status).to.not.equal(null)
             expect(deleteResponse.deleteThing.status).to.equal("ok")
@@ -277,7 +277,7 @@ describe('Beehive general suite', function() {
                     }
                     `
                     var getResponse = await request(uri, getQuery)
-                    console.log(JSON.stringify(getResponse))
+                    // console.log(JSON.stringify(getResponse))
                     var getQuery = `
                         query {
                             searhRelatedThings(query: {field: "thing", operator: CONTAINED_BY, values: ["${things.thing1.thing_id}", "${things.thing2.thing_id}"]}) {
@@ -292,7 +292,7 @@ describe('Beehive general suite', function() {
                             `
                     try {
                       var getResponse = await request(uri, getQuery)
-                      console.log(JSON.stringify(getResponse))
+                      // console.log(JSON.stringify(getResponse))
 
 
                       expect(getResponse.searhRelatedThings).to.not.equal(null)
@@ -355,8 +355,8 @@ describe('Beehive general suite', function() {
                     }
                 `
             var results_assign_1 = await request(uri, assign_1)
-            console.log("================== ASSIGNMENTS ==============================")
-            console.log(results_assign_1)
+            // console.log("================== ASSIGNMENTS ==============================")
+            // console.log(results_assign_1)
             expect(results_assign_1.assignment1.assignment_id).to.not.equal(null)
             expect(results_assign_1.assignment2.assignment_id).to.not.equal(null)
             var verifyQuery = `
@@ -378,9 +378,9 @@ describe('Beehive general suite', function() {
                   }
                 }
             `
-            console.log("================== VERIFICATION SET 1 =======================")
+            // console.log("================== VERIFICATION SET 1 =======================")
             var verificationSet = await request(uri, verifyQuery)
-            console.log(verificationSet)
+            // console.log(verificationSet)
             expect(verificationSet.getAssignments.data.length).to.equal(2)
             var assign_2 = `
                     mutation {
@@ -390,9 +390,9 @@ describe('Beehive general suite', function() {
                     }
                 `
             var results_assign_2 = await request(uri, assign_2)
-            console.log("================== VERIFICATION SET 2 =======================")
+            // console.log("================== VERIFICATION SET 2 =======================")
             verificationSet = await request(uri, verifyQuery)
-            console.log(verificationSet)
+            // console.log(verificationSet)
             expect(verificationSet.getAssignments.data.length).to.equal(3)
             for(var assignment of verificationSet.getAssignments.data) {
                 if(assignment.assignment_id == results_assign_2.assignment1.assignment_id) {
@@ -422,11 +422,11 @@ describe('Beehive general suite', function() {
                 }
             `
             var results_filer_assignments_1 = await request(uri, filer_assignments_1)
-            console.log("-------------------------------------------------------")
-            console.log("-------------------------------------------------------")
-            console.log(results_filer_assignments_1.getHolder.assignments)
-            console.log("-------------------------------------------------------")
-            console.log("-------------------------------------------------------")
+            // console.log("-------------------------------------------------------")
+            // console.log("-------------------------------------------------------")
+            // console.log(results_filer_assignments_1.getHolder.assignments)
+            // console.log("-------------------------------------------------------")
+            // console.log("-------------------------------------------------------")
             expect(results_filer_assignments_1.getHolder.assignments.length).to.equal(1)
             expect(results_filer_assignments_1.getHolder.assignments[0].assignment_id).to.equal(results_assign_1.assignment2.assignment_id)
         })
@@ -654,7 +654,7 @@ describe('Beehive general suite', function() {
             var things = await request(uri, query)
             query = `
                     query {
-                        findThings(query: {field: "name", operator: LIKE, value: "%Star Wars%"}, page: {max: 2, sort: [{field: "name", direction: ASC}]}) {
+                        findThings(query: {field: "name", operator: LIKE, value: "%Star Wars%"}, page: {max: 2, set_rpc: true, sort: [{field: "name", direction: ASC}]}) {
                             data {
                                 ... on Thing {
                                     thing_id
@@ -665,7 +665,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             things = await request(uri, query)
-            console.log(things)
+            // console.log(things)
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(2)
             expect(things.findThings.data[0].thing_id).to.not.equal(null)
@@ -689,7 +689,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             things = await request(uri, query)
-            console.log(things)
+            // console.log(things)
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(1)
             expect(things.findThings.page_info.count).to.equal(1)
@@ -712,7 +712,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             things = await request(uri, query)
-            console.log(things)
+            // console.log(things)
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(1)
             expect(things.findThings.page_info.count).to.equal(1)
@@ -831,7 +831,7 @@ describe('Beehive general suite', function() {
                 `
             // console.log(query)
             var related = await request(uri, query)
-            console.log(related)
+            // console.log(related)
 
             query = `
                     query {
@@ -911,7 +911,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var things = await request(uri, query)
-            console.log(JSON.stringify(things))
+            // console.log(JSON.stringify(things))
             query = `
                     query {
                         findNests(query: {field: "occupant.name", operator: EQ, value: "grey duck"}) {
@@ -954,7 +954,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var thing = await request(uri, createQuery)
-            console.log(thing)
+            // console.log(thing)
             expect(thing).to.not.equal(null)
             expect(thing.thing1.tags).to.eql(["new", "blue"])
             expect(thing.thing3.tags).to.equal(null)
@@ -986,7 +986,7 @@ describe('Beehive general suite', function() {
 
                     }
                 `
-            console.log(mutateQuery)
+            // console.log(mutateQuery)
             var thing = await request(uri, mutateQuery)
             expect(thing).to.not.equal(null)
             expect(thing.thing1.tags).to.eql(["new", "blue", "orange"])
@@ -1009,7 +1009,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var things = await request(uri, query)
-            console.log(things.findThings.data)
+            // console.log(things.findThings.data)
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(4)
 
@@ -1029,7 +1029,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var things = await request(uri, query)
-            console.log(things.findThings.data)
+            // console.log(things.findThings.data)
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(2)
 
@@ -1047,7 +1047,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var things = await request(uri, query)
-            console.log(things.findThings.data)
+            // console.log(things.findThings.data)
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(2)
 
@@ -1068,8 +1068,8 @@ describe('Beehive general suite', function() {
                 `
             var things = await request(uri, query)
 
-            console.log("CONTAINED_BY in a native column")
-            console.log(things.findThings.data)
+            // console.log("CONTAINED_BY in a native column")
+            // console.log(things.findThings.data)
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(1)
 
@@ -1090,7 +1090,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var things = await request(uri, query)
-            console.log(things.findThings.data)
+            // console.log(things.findThings.data)
             expect(things.findThings).to.not.equal(null)
             expect(things.findThings.data.length).to.equal(1)
         })
@@ -1099,9 +1099,9 @@ describe('Beehive general suite', function() {
             var table_config = schema._beehive.tables["Thing"]
             var query = {field: "material", operator: "EQ", value: "pencil-tape"}
             var explained = await queryType(schema, table_config, query, null, true)
-            console.log("============= explanation ===============")
-            console.log(explained)
-            console.log("=========================================")
+            // console.log("============= explanation ===============")
+            // console.log(explained)
+            // console.log("=========================================")
             expect(explained).to.not.equal(null)
             expect(explained.rows[0]['QUERY PLAN']).to.to.match(/^Index Scan/)
             expect(explained.rows[0]['QUERY PLAN']).to.to.match(/beehive_things__material_type/)
@@ -1154,7 +1154,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var vorts_created = await request(uri, createQuery)
-            console.log(vorts_created)
+            // console.log(vorts_created)
             expect(vorts_created).to.not.equal(null)
             expect(vorts_created.vortex_1.tags).to.eql(["new", "blue"])
 
@@ -1169,7 +1169,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var vorts = await request(uri, query)
-            console.log(vorts.searchVortices.data)
+            // console.log(vorts.searchVortices.data)
             expect(vorts.searchVortices).to.not.equal(null)
             expect(vorts.searchVortices.data.length).to.equal(5)
 
@@ -1184,7 +1184,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var vorts = await request(uri, query)
-            console.log(vorts.searchVortices.data)
+            // console.log(vorts.searchVortices.data)
             expect(vorts.searchVortices).to.not.equal(null)
             expect(vorts.searchVortices.data.length).to.equal(1)
 
@@ -1224,7 +1224,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var collections = await request(uri, createCollectionsQuery)
-            console.log(collections)
+            // console.log(collections)
             expect(collections).to.not.equal(null)
             let collection_ids = [
                 collections.collection_1.collection_id,
@@ -1247,7 +1247,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var collections = await request(uri, query)
-            console.log(collections)
+            // console.log(collections)
             expect(collections.searchCollections).to.not.equal(null)
             expect(collections.searchCollections.data.length).to.equal(7)
 
@@ -1266,7 +1266,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var collections = await request(uri, query)
-            console.log(collections.searchCollections.data)
+            // console.log(collections.searchCollections.data)
             expect(collections.searchCollections).to.not.equal(null)
             expect(collections.searchCollections.data.length).to.equal(2)
 
@@ -1282,7 +1282,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var collections = await request(uri, query)
-            console.log(collections.searchCollections.data)
+            // console.log(collections.searchCollections.data)
             expect(collections.searchCollections).to.not.equal(null)
             expect(collections.searchCollections.data.length).to.equal(3)
 
@@ -1303,7 +1303,7 @@ describe('Beehive general suite', function() {
                     }
                 `
             var collections = await request(uri, query)
-            console.log(collections.searchCollections.data)
+            // console.log(collections.searchCollections.data)
             expect(collections.searchCollections).to.not.equal(null)
             expect(collections.searchCollections.data.length).to.equal(2)
 
@@ -1322,4 +1322,3 @@ describe('Beehive no schema test', function(){
         })
     })
 })
-

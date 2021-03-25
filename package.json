@@ -1,6 +1,6 @@
 {
     "name": "@wildflowerschools/graphql-beehive",
-    "version": "1.4.5",
+    "version": "1.4.7",
     "description": "A set of tools for working with PostgreSQL and GraphQL",
     "main": "src/index.js",
     "repository": "https://github.com/WildflowerSchools/graphql-beehive",
@@ -8,6 +8,7 @@
         "test": "AWS_REGION=us-east-1 AWS_ACCESS_KEY_ID=aws_access_key_id AWS_SECRET_ACCESS_KEY=aws_secret_access_key BEEHIVE_ENABLE_EVENTS=yes BEEHIVE_MOCK_STREAM=yes node_modules/.bin/mocha  --exit --recursive --timeout 30000",
         "test-events": "DEBUG=yes AWS_REGION=us-east-1 BEEHIVE_ENABLE_EVENTS=yes node_modules/.bin/mocha  --exit --recursive --timeout 30000",
         "coverage": "node_modules/.bin/nyc npm test",
+        "kill-postgres": "CID=$(docker ps | grep postgres | awk '{print $1}') &&  docker stop $CID && docker rm $CID",
         "start": "node_modules/.bin/nodemon test/test-server.js"
     },
     "publishConfig": {
@@ -30,7 +31,7 @@
         "graphql-tools": "~4.0.6",
         "graphql-voyager": "~1.0.0-rc.26",
         "lru-cache": "^6.0.0",
-        "pg": "~7.5.0",
+        "pg": "~8.5.1",
         "redis": "~2.8.0"
     },
     "devDependencies": {

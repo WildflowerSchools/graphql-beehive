@@ -36,10 +36,10 @@ const BeehivePlugin = {
   requestDidStart(requestContext) {
     return {
       parsingDidStart(requestContext) {
-        console.log('Parsing started!')
+        // console.log('Parsing started!')
       },
       async executionDidStart(requestContext) {
-        console.log('Executing request!')
+        // console.log('Executing request!')
         requestContext.context.client = async function() {
           if(!requestContext.context.__client) {
             requestContext.context.__client = await pool.connect()
@@ -53,10 +53,10 @@ const BeehivePlugin = {
         console.log(requestContext.errors)
       },
       async willSendResponse(requestContext) {
-        console.log('Response started!')
+        // console.log('Response started!')
         if(requestContext.context.__client) {
           return new Promise(async function(resolve, reject) {
-            console.log("committing to db")
+            // console.log("committing to db")
             try {
               await requestContext.context.__client.query('COMMIT')
               await requestContext.context.__client.release()
