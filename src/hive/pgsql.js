@@ -3,6 +3,8 @@ const { Pool } = require('pg')
 const pool = new Pool()
 const util = require('util')
 const cassandraMAP = require("cassandra-map");
+const LRU = require("lru-cache");
+var type_cache = new LRU(5000);
 
 
 function applySystem(row) {
@@ -169,10 +171,15 @@ async function setGlobalLookup(schema, table_config, uid, client) {
 }
 
 exports.inferType = async function(schema, uid) {
-    var things = await pool.query(`SELECT type_name FROM ${schema._beehive.schema_name}.beehive_system_global_lookups WHERE obj_uid = $1`, [uid])
+    var type_name = type_cache.get(uid)
+    if(type_name) return type_name
+    var query = `SELECT type_name FROM ${schema._beehive.schema_name}.beehive_system_global_lookups WHERE obj_uid = $1`
+    var things = await pool.query(query, [uid])
 
     if(things.rows.length) {
-        return things.rows[0].type_name
+        var type_name = things.rows[0].type_name
+        type_cache.set(uid, type_name)
+        return type_name
     }
     return null
 }
@@ -286,11 +293,14 @@ exports.listType = async function(schema, table_config, pageInfo) {
 
 
 exports.getItem = async function(schema, table_config, pk) {
-    var things = await pool.query({
-      name: `fetch-${schema._beehive.schema_name}-${table_config.table_name}`,
-      query: `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`,
-      values: [pk],
-    })
+    var query = `SELECT created, last_modified, data, type_name FROM ${schema._beehive.schema_name}.${table_config.table_name} WHERE ${table_config.pk_column} = $1`
+    // console.log(query)
+    // var things = await pool.query({
+    //   name: `fetch-${schema._beehive.schema_name}-${table_config.table_name}`,
+    //   query: query,
+    //   values: [pk],
+    // })
+    var things = await pool.query(query, [pk])
 
     if(things.rows.length) {
         return applySystem(things.rows[0])
