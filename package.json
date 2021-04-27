@@ -32,7 +32,7 @@
         "graphql-voyager": "~1.0.0-rc.26",
         "lru-cache": "^6.0.0",
         "pg": "~8.5.1",
-        "redis": "~2.8.0"
+        "redis": "~3.1.1"
     },
     "devDependencies": {
         "body-parser": "~1.18.3",
