@@ -624,8 +624,12 @@ class BeehiveAssignmentFilterDirective extends SchemaDirectiveVisitor {
                     })
                 } else if(args.at) {
                     // NEED TEST
-                    query.children.push({field: start_field_name, operator: "GTE", value: args.at})
-                    query.children.push({field: end_field_name, operator: "LTE", value: args.at})
+                    query.children.push({field: start_field_name, operator: "LTE", value: args.at})
+                    query.children.push({operator: "OR", children: [
+                            {field: end_field_name, operator: "ISNULL"},
+                            {field: end_field_name, operator: "GTE", value: args.at},
+                        ]
+                    })
                 }
                 return getRelatedItemsFiltered(schema, table_config, assignee_field, obj[local_table_config.pk_column], query, args.page)
             } else {
