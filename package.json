@@ -31,7 +31,7 @@
         "graphql-tools": "~4.0.6",
         "graphql-voyager": "~1.0.0-rc.26",
         "lru-cache": "^6.0.0",
-        "pg": "~8.5.1",
+        "pg": "~8.7.3",
         "redis": "~2.8.0"
     },
     "devDependencies": {
