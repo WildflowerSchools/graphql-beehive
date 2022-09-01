@@ -21,7 +21,7 @@
         "apollo": "~2.21.1",
         "apollo-server": "~2.25.3",
         "apollo-server-express": "~2.21.1",
-        "aws-sdk": "~2.576.0",
+        "aws-sdk": "~2.814.0",
         "axios": "~0.21.1",
         "cassandra-map": "~0.1.7",
         "graphql": "~14.5.8",
