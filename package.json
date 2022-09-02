@@ -24,7 +24,7 @@
         "aws-sdk": "~2.576.0",
         "axios": "~0.21.1",
         "cassandra-map": "~0.1.7",
-        "graphql": "~14.5.8",
+        "graphql": "~16.5.0",
         "graphql-custom-types": "~1.5.1",
         "graphql-directive": "~0.2.1",
         "graphql-iso-date": "~3.6.1",
