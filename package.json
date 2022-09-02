@@ -25,7 +25,7 @@
         "axios": "~0.21.1",
         "cassandra-map": "~0.1.7",
         "graphql": "~14.5.8",
-        "graphql-custom-types": "~1.5.1",
+        "graphql-custom-types": "~1.6.0",
         "graphql-directive": "~0.2.1",
         "graphql-iso-date": "~3.6.1",
         "graphql-tools": "~4.0.6",
